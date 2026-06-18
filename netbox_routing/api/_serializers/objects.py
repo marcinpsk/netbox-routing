@@ -16,6 +16,7 @@ __all__ = (
     'PrefixListEntrySerializer',
     'RouteMapSerializer',
     'RouteMapEntrySerializer',
+    'RouteMapEntrySetCommunitySerializer',
 )
 
 
@@ -173,10 +174,20 @@ class RouteMapSerializer(NetBoxModelSerializer):
             'id',
             'display',
             'name',
+            'default_action',
             'description',
             'comments',
         )
         brief_fields = ('url', 'id', 'display', 'name')
+
+
+class RouteMapEntrySetCommunitySerializer(serializers.ModelSerializer):
+    community_list = CommunityListSerializer(nested=True, required=False, allow_null=True)
+    communities = CommunitySerializer(nested=True, many=True, required=False)
+
+    class Meta:
+        model = RouteMapEntrySetCommunity
+        fields = ('id', 'operation', 'community_list', 'communities')
 
 
 class RouteMapEntrySerializer(NetBoxModelSerializer):
@@ -190,6 +201,9 @@ class RouteMapEntrySerializer(NetBoxModelSerializer):
     )
     match_community = CommunitySerializer(nested=True, many=True, required=False)
     match_aspath = ASPathSerializer(nested=True, many=True, required=False)
+    call_policy = RouteMapSerializer(nested=True, required=False, allow_null=True)
+    apply_policy = RouteMapSerializer(nested=True, required=False, allow_null=True)
+    set_communities = RouteMapEntrySetCommunitySerializer(many=True, read_only=True)
 
     class Meta:
         model = RouteMapEntry
@@ -204,8 +218,14 @@ class RouteMapEntrySerializer(NetBoxModelSerializer):
             'match_community_list',
             'match_community',
             'match_aspath',
+            'match_afi',
+            'match_condition',
+            'call_policy',
+            'apply_policy',
             'match',
             'set',
+            'set_communities',
+            'vendor_ext',
             'description',
             'comments',
         )

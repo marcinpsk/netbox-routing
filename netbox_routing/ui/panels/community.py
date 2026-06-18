@@ -11,12 +11,15 @@ __all__ = (
 
 class CommunityListPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
+    invert_match = attrs.BooleanAttr('invert_match', label=_('Invert match'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
 class CommunityPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
     community = attrs.TextAttr('community', label=_('Community'))
+    # Derived from the community text (no stored column); see Community.kind.
+    kind = attrs.ChoiceAttr('kind', label=_('Kind'))
     status = attrs.ChoiceAttr('status', label=_('Status'))
     role = attrs.ChoiceAttr('role', label=_('Role'))
     description = attrs.TextAttr('description', label=_('Description'))

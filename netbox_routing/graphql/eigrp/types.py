@@ -38,6 +38,7 @@ class EIGRPAddressFamilyType(PrimaryObjectType):
     router: Annotated[
         "EIGRPRouterType", strawberry.lazy('netbox_routing.graphql.types')
     ]
+    vrf: Annotated["VRFType", strawberry.lazy('ipam.graphql.types')] | None
     rid: str
 
 

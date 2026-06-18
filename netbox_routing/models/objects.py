@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 
 from ipam.choices import IPAddressFamilyChoices
@@ -16,7 +17,7 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing.models.community import *
-from netbox_routing.choices import ActionChoices
+from netbox_routing.choices import ActionChoices, CommunitySetActionChoices, RoutePolicyAFIChoices
 from netbox_routing.constants.objects import PREFIX_ASSIGNMENT_MODELS
 
 __all__ = (
@@ -27,6 +28,7 @@ __all__ = (
     'CustomPrefix',
     'RouteMap',
     'RouteMapEntry',
+    'RouteMapEntrySetCommunity',
 )
 
 
@@ -257,6 +259,14 @@ class CustomPrefix(PrimaryModel):
 
 class RouteMap(PrimaryModel):
     name = models.CharField(max_length=100)
+    default_action = models.CharField(
+        max_length=6,
+        choices=ActionChoices,
+        null=True,
+        blank=True,
+        verbose_name=_('Default action'),
+        help_text=_('Action applied when no entry matches (a vendor policy default-action); blank = none.'),
+    )
 
     clone_fields = ()
     prerequisite_models = ()
@@ -278,6 +288,41 @@ class RouteMap(PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:routemap', kwargs={'pk': self.pk})
+
+    def get_default_action_color(self):
+        return ActionChoices.colors.get(self.default_action)
+
+
+_MATCH_CONDITION_OPS = ('and', 'or', 'not')
+
+
+def validate_match_condition(node, depth=0):
+    """Validate a ``RouteMapEntry.match_condition`` boolean tree (schema v1).
+
+    A node is a GROUP ``{"op": "and"|"or"|"not", "args": [node, ...]}`` (``not`` takes
+    exactly one arg) or a LEAF ``{"match": "<kind>", ...}``. Raises ``ValidationError`` on a
+    malformed tree so a bad condition can't be persisted; the leaf payload (ref/value) is
+    intentionally free-form (kinds evolve per vendor).
+    """
+    if depth > 20:
+        raise ValidationError(_('match_condition is nested too deeply.'))
+    if not isinstance(node, dict):
+        raise ValidationError(_('match_condition node must be an object.'))
+    if 'op' in node:
+        if node['op'] not in _MATCH_CONDITION_OPS:
+            raise ValidationError(_('match_condition op must be one of and/or/not.'))
+        args = node.get('args')
+        if not isinstance(args, list) or not args:
+            raise ValidationError(_('match_condition op requires a non-empty "args" list.'))
+        if node['op'] == 'not' and len(args) != 1:
+            raise ValidationError(_('match_condition "not" takes exactly one argument.'))
+        for arg in args:
+            validate_match_condition(arg, depth + 1)
+    elif 'match' in node:
+        if not isinstance(node['match'], str) or not node['match']:
+            raise ValidationError(_('match_condition leaf "match" must be a non-empty string.'))
+    else:
+        raise ValidationError(_('match_condition node needs an "op" or a "match" key.'))
 
 
 class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
@@ -312,6 +357,33 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         related_name='route_map_entries',
     )
+    match_afi = ArrayField(
+        base_field=models.CharField(max_length=20, choices=RoutePolicyAFIChoices),
+        blank=True,
+        null=True,
+        verbose_name=_('Match address-family'),
+        help_text=_('Address families this entry matches (Junos from-family / Nokia from-family); empty = any.'),
+    )
+    match_condition = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('Match condition tree'),
+        help_text=_(
+            'Typed boolean match tree for nested and/or/not conditions the flat match refs '
+            'cannot express (IOS-XR if/elseif blocks). Schema v1: {"op": "and|or|not", "args": '
+            '[...]} over leaves {"match": "...", "ref"|"value": ...}. Null = a plain AND of the '
+            'structured match_* refs.'
+        ),
+    )
+    call_policy = models.ForeignKey(
+        to='RouteMap',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='called_by_entries',
+        verbose_name=_('Call policy (match)'),
+        help_text=_('A policy referenced as a match condition / subroutine (Junos from-policy, IOS-XR apply).'),
+    )
     match = models.JSONField(
         blank=True,
         null=True,
@@ -323,6 +395,25 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
         null=True,
         verbose_name=_('Set parameters'),
         help_text=_("JSON blob of options to set "),
+    )
+    vendor_ext = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name=_('Vendor extensions'),
+        help_text=_(
+            "Namespaced JSON for vendor-specific match/set constructs without a dedicated field yet "
+            "(e.g. {\"junos\": {...}, \"timos\": {...}}); the documented successor to the "
+            "ad-hoc _rpl_/_junos_/_timos_ keys in match/set."
+        ),
+    )
+    apply_policy = models.ForeignKey(
+        to='RouteMap',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='applied_by_entries',
+        verbose_name=_('Apply policy (tail-call)'),
+        help_text=_('A policy tail-called from this entry (IOS-XR apply / Junos policy chaining).'),
     )
 
     clone_fields = (
@@ -349,3 +440,53 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
 
     def get_absolute_url(self):
         return reverse('plugins:netbox_routing:routemapentry', args=[self.pk])
+
+    @property
+    def match_afi_display(self):
+        """Comma-joined address families for read-only display (the field is an array)."""
+        return ', '.join(self.match_afi or [])
+
+    def clean(self):
+        super().clean()
+        if self.match_condition:
+            validate_match_condition(self.match_condition)
+
+
+class RouteMapEntrySetCommunity(models.Model):
+    """A single by-reference set-community action on a route-map entry (R3).
+
+    Every surveyed vendor sets communities by REFERENCE (a community-list name) with an
+    OPERATION — Junos ``then community add|set|delete <name>``, Nokia ``action community
+    add|remove|replace <list>``, IOS-XR ``set community <set> [additive]``. The flat ``set``
+    JSON could only hold a single inline value, losing both the reference and the operation;
+    one entry can carry several actions (e.g. add one list, delete another). The target is a
+    referenced ``community_list`` and/or inline ``communities`` (IOS literal values).
+    """
+
+    route_map_entry = models.ForeignKey(
+        to='RouteMapEntry',
+        on_delete=models.CASCADE,
+        related_name='set_communities',
+    )
+    operation = models.CharField(max_length=10, choices=CommunitySetActionChoices)
+    community_list = models.ForeignKey(
+        to=CommunityList,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='set_by_route_map_entries',
+    )
+    communities = models.ManyToManyField(
+        to=Community,
+        blank=True,
+        related_name='set_by_route_map_entries',
+    )
+
+    class Meta:
+        ordering = ('route_map_entry', 'operation', 'pk')
+        verbose_name = 'Route Map Set Community'
+        verbose_name_plural = 'Route Map Set Communities'
+
+    def __str__(self):
+        target = self.community_list.name if self.community_list_id else 'inline'
+        return f'{self.operation} {target}'

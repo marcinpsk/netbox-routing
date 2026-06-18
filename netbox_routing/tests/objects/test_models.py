@@ -188,6 +188,25 @@ class RouteMapTestCase(TestCase):
         with self.assertRaises(IntegrityError):
             rm.save()
 
+    def test_default_action(self):
+        # Policy-level default-action (vendor default when no entry matches); blank = none.
+        rm = RouteMap(name='RM Default', default_action='deny')
+        rm.full_clean()
+        rm.save()
+        rm.refresh_from_db()
+        self.assertEqual(rm.default_action, 'deny')
+
+        rm_none = RouteMap(name='RM No Default')
+        rm_none.full_clean()
+        rm_none.save()
+        rm_none.refresh_from_db()
+        self.assertIsNone(rm_none.default_action)
+
+    def test_default_action_rejects_unknown(self):
+        rm = RouteMap(name='RM Bad Default', default_action='bogus')
+        with self.assertRaises(ValidationError):
+            rm.full_clean()
+
 
 class RouteMapEntryTestCase(TestCase):
 
@@ -216,3 +235,112 @@ class RouteMapEntryTestCase(TestCase):
             rme.save()
             self.assertIsInstance(rme, RouteMapEntry)
             self.assertEqual(rme.__str__(), f'{self.route_map} permit {seq}')
+
+    def test_vendor_ext(self):
+        # Namespaced vendor-extension carrier (successor to the _rpl_/_junos_/_timos_ blobs).
+        rme = RouteMapEntry(
+            route_map=self.route_map,
+            action='permit',
+            sequence=10,
+            vendor_ext={'timos': {'default_action': True}, 'junos': {'priority': 'high'}},
+        )
+        rme.full_clean()
+        rme.save()
+        rme.refresh_from_db()
+        self.assertEqual(rme.vendor_ext['timos']['default_action'], True)
+        self.assertEqual(rme.vendor_ext['junos']['priority'], 'high')
+
+    def test_set_community_by_ref_and_inline(self):
+        # By-reference (community-list + op) AND inline (literal communities) set-actions;
+        # one entry can carry several. Replaces the lossy single inline value in set-JSON.
+        from netbox_routing.models.community import Community, CommunityList
+
+        cl = CommunityList.objects.create(name='CL-SET')
+        c1 = Community.objects.create(community='65000:1')
+        rme = RouteMapEntry.objects.create(route_map=self.route_map, action='permit', sequence=20)
+
+        add = RouteMapEntrySetCommunity.objects.create(
+            route_map_entry=rme, operation='add', community_list=cl
+        )
+        inline = RouteMapEntrySetCommunity.objects.create(route_map_entry=rme, operation='set')
+        inline.communities.add(c1)
+
+        self.assertEqual(rme.set_communities.count(), 2)
+        self.assertEqual(rme.set_communities.get(operation='add').community_list, cl)
+        self.assertEqual(list(rme.set_communities.get(operation='set').communities.all()), [c1])
+        self.assertEqual(str(add), 'add CL-SET')
+        self.assertEqual(str(inline), 'set inline')
+
+    def test_set_community_operation_rejects_unknown(self):
+        rme = RouteMapEntry.objects.create(route_map=self.route_map, action='permit', sequence=21)
+        obj = RouteMapEntrySetCommunity(route_map_entry=rme, operation='bogus')
+        with self.assertRaises(ValidationError):
+            obj.full_clean()
+
+    def test_match_afi(self):
+        # Per-entry address-family match (Junos from-family / Nokia from-family), multi-valued.
+        rme = RouteMapEntry(
+            route_map=self.route_map,
+            action='permit',
+            sequence=30,
+            match_afi=['ipv4', 'vpn-ipv4'],
+        )
+        rme.full_clean()
+        rme.save()
+        rme.refresh_from_db()
+        self.assertEqual(rme.match_afi, ['ipv4', 'vpn-ipv4'])
+
+    def test_match_afi_rejects_unknown(self):
+        rme = RouteMapEntry(
+            route_map=self.route_map, action='permit', sequence=31, match_afi=['bogus']
+        )
+        with self.assertRaises(ValidationError):
+            rme.full_clean()
+
+    def test_call_and_apply_policy(self):
+        # A policy used as a match subroutine (Junos from-policy / IOS-XR apply) and as a
+        # tail-call; PROTECT keeps a referenced policy from being deleted out from under it.
+        from django.db.models import ProtectedError
+
+        sub = RouteMap.objects.create(name='SUB-POLICY')
+        rme = RouteMapEntry(
+            route_map=self.route_map, action='permit', sequence=40, call_policy=sub, apply_policy=sub
+        )
+        rme.full_clean()
+        rme.save()
+        rme.refresh_from_db()
+        self.assertEqual(rme.call_policy, sub)
+        self.assertEqual(rme.apply_policy, sub)
+        with self.assertRaises(ProtectedError):
+            sub.delete()
+
+    def test_match_condition_valid_tree(self):
+        rme = RouteMapEntry(
+            route_map=self.route_map,
+            action='permit',
+            sequence=41,
+            match_condition={
+                'op': 'or',
+                'args': [
+                    {'match': 'community', 'ref': 'CL-A'},
+                    {'op': 'not', 'args': [{'match': 'aspath', 'ref': 'AP-X'}]},
+                ],
+            },
+        )
+        rme.full_clean()
+        rme.save()
+        rme.refresh_from_db()
+        self.assertEqual(rme.match_condition['op'], 'or')
+
+    def test_match_condition_rejects_malformed(self):
+        for bad in (
+            {'op': 'xor', 'args': [{'match': 'community'}]},  # unknown op
+            {'op': 'and', 'args': []},  # empty args
+            {'op': 'not', 'args': [{'match': 'x'}, {'match': 'y'}]},  # not with 2 args
+            {'foo': 'bar'},  # neither op nor match
+        ):
+            rme = RouteMapEntry(
+                route_map=self.route_map, action='permit', sequence=42, match_condition=bad
+            )
+            with self.assertRaises(ValidationError):
+                rme.full_clean()

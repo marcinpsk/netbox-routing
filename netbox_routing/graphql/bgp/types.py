@@ -17,6 +17,7 @@ from netbox_routing.graphql.bgp.filters import (
     BGPPeerFilter,
     BGPPeerAddressFamilyFilter,
     BFDProfileFilter,
+    BFDInterfaceFilter,
 )
 from netbox_routing.graphql.objects.types import PrefixListType, RouteMapType
 
@@ -30,6 +31,7 @@ __all__ = (
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
     'BFDProfileType',
+    'BFDInterfaceType',
 )
 
 from netbox_routing.graphql.types_mixin import BGPSettingsMixin
@@ -260,6 +262,7 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
         Annotated["BFDProfileType", strawberry.lazy('netbox_routing.graphql.types')]
         | None
     )
+    bfd_enabled: bool | None
     ttl: int | None
     password: str | None
     address_families: (
@@ -343,3 +346,18 @@ class BFDProfileType(PrimaryObjectType):
     multiplier: int
     hold: int | None
     tenant: Annotated["TenantType", strawberry.lazy('tenancy.graphql.types')] | None
+
+
+@strawberry_django.type(
+    models.BFDInterface,
+    fields='__all__',
+    filters=BFDInterfaceFilter,
+)
+class BFDInterfaceType(PrimaryObjectType):
+    interface: Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')]
+    bfd_profile: (
+        Annotated["BFDProfileType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    micro_bfd: bool
+    enabled: bool

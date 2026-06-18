@@ -26,6 +26,38 @@ urlpatterns = [
     path(
         'ospf/interface/<int:pk>/', include(get_model_urls(app_name, 'ospfinterface'))
     ),
+    # IS-IS
+    path(
+        'isis/setting/',
+        include(get_model_urls(app_name, 'isissetting', detail=False)),
+    ),
+    path('isis/setting/<int:pk>/', include(get_model_urls(app_name, 'isissetting'))),
+    path('isis/level/', include(get_model_urls(app_name, 'isislevel', detail=False))),
+    path('isis/level/<int:pk>/', include(get_model_urls(app_name, 'isislevel'))),
+    path(
+        'isis/interface-level/',
+        include(get_model_urls(app_name, 'isisinterfacelevel', detail=False)),
+    ),
+    path('isis/interface-level/<int:pk>/', include(get_model_urls(app_name, 'isisinterfacelevel'))),
+    path(
+        'isis/segment-routing/',
+        include(get_model_urls(app_name, 'isissegmentrouting', detail=False)),
+    ),
+    path('isis/segment-routing/<int:pk>/', include(get_model_urls(app_name, 'isissegmentrouting'))),
+    path('isis/flex-algo/', include(get_model_urls(app_name, 'isisflexalgo', detail=False))),
+    path('isis/flex-algo/<int:pk>/', include(get_model_urls(app_name, 'isisflexalgo'))),
+    path(
+        'isis/instance/',
+        include(get_model_urls(app_name, 'isisinstance', detail=False)),
+    ),
+    path('isis/instance/<int:pk>/', include(get_model_urls(app_name, 'isisinstance'))),
+    path(
+        'isis/interface/',
+        include(get_model_urls(app_name, 'isisinterface', detail=False)),
+    ),
+    path(
+        'isis/interface/<int:pk>/', include(get_model_urls(app_name, 'isisinterface'))
+    ),
     # EIGRP
     path(
         'eigrp/router/', include(get_model_urls(app_name, 'eigrprouter', detail=False))
@@ -54,6 +86,8 @@ urlpatterns = [
     # BFD
     path('bfd/profile/', include(get_model_urls(app_name, 'bfdprofile', detail=False))),
     path('bfd/profile/<int:pk>/', include(get_model_urls(app_name, 'bfdprofile'))),
+    path('bfd/interface/', include(get_model_urls(app_name, 'bfdinterface', detail=False))),
+    path('bfd/interface/<int:pk>/', include(get_model_urls(app_name, 'bfdinterface'))),
     # BGP
     path('bgp/setting/', include(get_model_urls(app_name, 'bgpsetting', detail=False))),
     path('bgp/setting/<int:pk>/', include(get_model_urls(app_name, 'bgpsetting'))),

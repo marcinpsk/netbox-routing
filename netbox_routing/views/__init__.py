@@ -2,6 +2,7 @@ from .static import *
 from .objects import *
 from .community import *
 from .ospf import *
+from .isis import *
 from .eigrp import *
 from .bgp import *
 from .core import *
@@ -32,6 +33,16 @@ __all__ = (
     'OSPFInterfaceView',
     'OSPFInterfaceEditView',
     'OSPFInterfaceDeleteView',
+    # IS-IS
+    'ISISInstanceListView',
+    'ISISInstanceView',
+    'ISISInstanceEditView',
+    'ISISInstanceDeleteView',
+    'ISISInstanceInterfacesView',
+    'ISISInterfaceListView',
+    'ISISInterfaceView',
+    'ISISInterfaceEditView',
+    'ISISInterfaceDeleteView',
     # EIGRP
     'EIGRPRouterListView',
     'EIGRPRouterView',

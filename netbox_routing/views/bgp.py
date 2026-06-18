@@ -780,3 +780,35 @@ class BFDProfileSessionTemplatesView(ObjectChildrenView):
 
     def get_children(self, request, parent):
         return self.child_model.objects.filter(bfd=parent)
+
+
+@register_model_view(BFDInterface, name='list', path='', detail=False)
+class BFDInterfaceListView(ObjectListView):
+    queryset = BFDInterface.objects.all()
+    filterset = BFDInterfaceFilterSet
+    filterset_form = BFDInterfaceFilterForm
+    table = BFDInterfaceTable
+
+
+@register_model_view(BFDInterface)
+class BFDInterfaceView(ObjectView):
+    queryset = BFDInterface.objects.all()
+
+
+@register_model_view(BFDInterface, name='add', detail=False)
+@register_model_view(BFDInterface, name='edit')
+class BFDInterfaceEditView(ObjectEditView):
+    queryset = BFDInterface.objects.all()
+    form = BFDInterfaceForm
+
+
+@register_model_view(BFDInterface, name='delete')
+class BFDInterfaceDeleteView(ObjectDeleteView):
+    queryset = BFDInterface.objects.all()
+
+
+@register_model_view(BFDInterface, name='bulk_delete', detail=False)
+class BFDInterfaceBulkDeleteView(BulkDeleteView):
+    queryset = BFDInterface.objects.all()
+    filterset = BFDInterfaceFilterSet
+    table = BFDInterfaceTable

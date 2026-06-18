@@ -123,6 +123,8 @@ class OSPFInterfaceForm(PrimaryModelForm):
         ),
         FieldSet(
             'interface',
+            'network_type',
+            'cost',
             'priority',
             'passive',
             'bfd',
@@ -142,6 +144,8 @@ class OSPFInterfaceForm(PrimaryModelForm):
             'instance',
             'area',
             'interface',
+            'network_type',
+            'cost',
             'passive',
             'priority',
             'bfd',

@@ -50,6 +50,7 @@ class CommunityListSerializer(NetBoxModelSerializer):
             'id',
             'display',
             'name',
+            'invert_match',
             'tenant',
             'description',
             'comments',

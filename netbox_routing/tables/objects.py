@@ -82,11 +82,50 @@ class RouteMapEntryTable(NetBoxTable):
     route_map = tables.Column(verbose_name=_('Route Map'), linkify=True)
     action = columns.ChoiceFieldColumn()
     flow_control = tables.Column(verbose_name=_('Flow Control (Continue)'))
+    match_prefix_list = columns.ManyToManyColumn(
+        verbose_name=_('Match Prefix Lists'), linkify_item=True
+    )
+    match_community_list = columns.ManyToManyColumn(
+        verbose_name=_('Match Community Lists'), linkify_item=True
+    )
+    match_aspath = columns.ManyToManyColumn(
+        verbose_name=_('Match AS Paths'), linkify_item=True
+    )
+    match_community = columns.ManyToManyColumn(
+        verbose_name=_('Match Communities'), linkify_item=True
+    )
+    match = tables.Column(verbose_name=_('Match (other)'))
+    set = tables.Column(verbose_name=_('Set'))
 
     class Meta(NetBoxTable.Meta):
         model = RouteMapEntry
-        fields = ('pk', 'id', 'route_map', 'sequence', 'action', 'flow_control')
-        default_columns = ('pk', 'id', 'route_map', 'sequence', 'action')
+        fields = (
+            'pk',
+            'id',
+            'route_map',
+            'sequence',
+            'action',
+            'flow_control',
+            'match_prefix_list',
+            'match_community_list',
+            'match_aspath',
+            'match_community',
+            'match',
+            'set',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'route_map',
+            'sequence',
+            'action',
+            'flow_control',
+            'match_prefix_list',
+            'match_community_list',
+            'match_aspath',
+            'match',
+            'set',
+        )
 
 
 class ASPathTable(NetBoxTable):
