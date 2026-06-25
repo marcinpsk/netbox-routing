@@ -538,6 +538,18 @@ class BGPPeer(PrimaryModel):
         blank=True,
         null=True,
     )
+    update_source = models.ForeignKey(
+        verbose_name=_('Update Source'),
+        to='dcim.Interface',
+        on_delete=models.PROTECT,
+        related_name='bgp_update_source_peers',
+        blank=True,
+        null=True,
+        help_text=_(
+            'Source interface for the session (IOS / IOS-XR update-source). '
+            'Junos / Nokia express this as an IP via Source Address instead.'
+        ),
+    )
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
         to='netbox_routing.BGPPeerTemplate',
@@ -590,7 +602,9 @@ class BGPPeer(PrimaryModel):
         verbose_name=_('BFD enabled'),
         blank=True,
         null=True,
-        help_text=_('BFD fall-over enabled for this peer (timers come from the bound interface).'),
+        help_text=_(
+            'BFD fall-over enabled for this peer (timers come from the bound interface).'
+        ),
     )
     ttl = models.PositiveSmallIntegerField(
         verbose_name=_('TTL'),

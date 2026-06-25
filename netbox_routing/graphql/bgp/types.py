@@ -256,6 +256,9 @@ class BGPPeerType(BGPSettingsMixin, PrimaryObjectType):
     )
     peer: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')]
     source: Annotated["IPAddressType", strawberry.lazy('ipam.graphql.types')] | None
+    update_source: (
+        Annotated["InterfaceType", strawberry.lazy('dcim.graphql.types')] | None
+    )
     remote_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     local_as: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')] | None
     bfd: (

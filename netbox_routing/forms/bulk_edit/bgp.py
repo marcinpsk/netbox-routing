@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.translation import gettext as _
 
+from dcim.models import Interface
 from ipam.models import ASN, IPAddress, VRF
 from netbox.forms import PrimaryModelBulkEditForm
 from netbox_routing.forms.bulk_edit.base import EnableMixin, TenantBulkEditMixin
@@ -276,6 +277,12 @@ class BGPPeerBulkEditForm(
         required=False,
         selector=True,
     )
+    update_source = DynamicModelChoiceField(
+        label=_('Update Source'),
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+    )
     peer_group = DynamicModelChoiceField(
         label=_('Peer Group'),
         queryset=BGPPeerTemplate.objects.all(),
@@ -298,6 +305,7 @@ class BGPPeerBulkEditForm(
             'status',
             'enabled',
             'source',
+            'update_source',
             'remote_as',
             'local_as',
         ),
@@ -312,6 +320,7 @@ class BGPPeerBulkEditForm(
     )
     nullable_fields = (
         'source',
+        'update_source',
         'peer_group',
         'peer_session',
         'local_as',

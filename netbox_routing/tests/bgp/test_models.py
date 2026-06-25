@@ -2,6 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
+from dcim.models import Interface
+from utilities.testing import create_test_device
+
 from netbox_routing.models.bgp import *
 from netbox_routing.tests.base import *
 from netbox_routing.tests.bgp.base import *
@@ -161,6 +164,28 @@ class BGPPeerTestCase(
         self.assertIsInstance(instance, self.model)
         self.assertEqual(instance.scope, self.scope)
         self.assertEqual(instance.peer, self.peer_address)
+
+    def test_update_source_interface(self):
+        """update_source holds a dcim.Interface (IOS / IOS-XR update-source)
+        independently of the IPAddress source (Junos / Nokia local-address)."""
+        device = create_test_device(name='Test Update-Source Device')
+        loopback = Interface.objects.create(
+            device=device, name='Loopback0', type='virtual'
+        )
+        instance = self.model(
+            name='Update-Source Peer',
+            scope=self.scope,
+            peer=self.peer_address,
+            source=self.source_address,
+            update_source=loopback,
+        )
+        instance.full_clean()
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.source, self.source_address)
+        self.assertEqual(instance.update_source, loopback)
+        self.assertEqual(instance.update_source.name, 'Loopback0')
 
     def test_unique_together(self):
         instance = self.model(

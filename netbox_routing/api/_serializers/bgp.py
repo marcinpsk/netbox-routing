@@ -266,6 +266,7 @@ class BGPPeerSerializer(NetBoxModelSerializer):
     scope = BGPScopeSerializer(nested=True)
     peer = IPAddressSerializer(nested=True)
     source = IPAddressSerializer(nested=True, required=False)
+    update_source = InterfaceSerializer(nested=True, required=False)
     remote_as = ASNSerializer(nested=True, required=False)
     local_as = ASNSerializer(nested=True, required=False)
     tenant = TenantSerializer(nested=True, required=False)
@@ -279,6 +280,7 @@ class BGPPeerSerializer(NetBoxModelSerializer):
             'scope',
             'peer',
             'source',
+            'update_source',
             'name',
             'remote_as',
             'local_as',

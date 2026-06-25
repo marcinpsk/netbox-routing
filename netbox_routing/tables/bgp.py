@@ -170,6 +170,7 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
     scope = tables.Column(linkify=True, verbose_name=_('Scope'))
     peer = tables.Column(linkify=True, verbose_name=_('Scope'))
     source = tables.Column(linkify=True, verbose_name=_('Scope'))
+    update_source = tables.Column(linkify=True, verbose_name=_('Update Source'))
     peer_group = tables.Column(linkify=True, verbose_name=_('Scope'))
     peer_session = tables.Column(linkify=True, verbose_name=_('Scope'))
     remote_as = tables.Column(linkify=True, verbose_name=_('Scope'))
@@ -184,6 +185,7 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
             'scope',
             'peer',
             'source',
+            'update_source',
             'peer_group',
             'peer_session',
             'remote_as',
