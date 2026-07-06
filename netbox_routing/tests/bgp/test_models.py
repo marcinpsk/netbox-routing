@@ -397,3 +397,31 @@ class BFDProfileTestCase(
             instance.full_clean()
         with self.assertRaises(IntegrityError):
             instance.save()
+
+
+class BGPAddressFamilyChoicesTestCase(TestCase):
+    """Guard the AFI choice vocabulary the NSO pipeline round-trips through this model."""
+
+    def test_labeled_unicast_are_distinct_choices(self):
+        # BGP-LU is a different family than plain unicast (IOS-XR/Junos/Nokia all model it
+        # separately); the sync pipeline must be able to store it without folding.
+        from netbox_routing.choices.bgp import BGPAddressFamilyChoices
+
+        values = dict(BGPAddressFamilyChoices.CHOICES)
+        self.assertIn('ipv4-labeled-unicast', values)
+        self.assertIn('ipv6-labeled-unicast', values)
+
+    def test_every_declared_constant_is_a_choice(self):
+        # Regression guard: the VPNv4-Multicast row accidentally reused the VPNV4_UNICAST
+        # constant, so 'vpnv4-multicast' was declared but never selectable.
+        from netbox_routing.choices.bgp import BGPAddressFamilyChoices as C
+
+        values = {v for v, _label in C.CHOICES}
+        declared = {
+            getattr(C, name)
+            for name in dir(C)
+            if name.isupper()
+            and name != 'CHOICES'
+            and isinstance(getattr(C, name), str)
+        }
+        self.assertLessEqual(declared, values)
