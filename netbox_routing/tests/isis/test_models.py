@@ -51,6 +51,15 @@ class ISISInstanceModelTestCase(TestCase):
         self._instance(area_auth_type='hmac-sha-256', area_auth_key='secret').full_clean()
         self._instance(domain_auth_type='hmac-sha-1', domain_auth_key='secret').full_clean()
 
+    def test_fast_reroute_and_microloop_accepted(self):
+        # Process-wide IP-FRR flavour (LFA / Remote-LFA / TI-LFA — IOS-XR
+        # fast-reroute per-prefix [ti-lfa], Junos backup-spf-options, Nokia
+        # loopfree-alternate, Arrcus fast-reroute augment) and micro-loop
+        # avoidance, TI-LFA's usual companion knob.
+        for flavour in ('lfa', 'remote-lfa', 'ti-lfa'):
+            self._instance(fast_reroute=flavour).full_clean()
+        self._instance(microloop_avoidance=True).full_clean()
+
     def test_clean_accepts_no_auth(self):
         self._instance().clean()
 
@@ -154,6 +163,15 @@ class ISISInterfaceModelTestCase(TestCase):
 
     def test_hello_auth_hmac_sha_accepted(self):
         self._iface(n=14, hello_auth_type='hmac-sha-256', hello_auth_key='secret').full_clean()
+
+    def test_frr_fields_accepted(self):
+        # Per-interface fast-reroute: protection coverage (link/node — Junos
+        # link-protection/node-link-protection, IOS-XR per-prefix protection)
+        # and the tri-state enable, whose False is the EXPLICIT exclude form
+        # (Nokia loopfree-alternate-exclude, IOS-XR fast-reroute exclude).
+        self._iface(n=15, frr_enabled=True, frr_protection='node').full_clean()
+        self._iface(n=16, frr_enabled=False).full_clean()
+        self._iface(n=17, frr_protection='link').full_clean()
 
     def test_clean_accepts_no_hello_auth(self):
         self._iface(n=11).clean()

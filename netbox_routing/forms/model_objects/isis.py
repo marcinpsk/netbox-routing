@@ -197,6 +197,7 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             name=_('Timers'),
         ),
         FieldSet('te_enabled', name=_('Traffic Engineering')),
+        FieldSet('fast_reroute', 'microloop_avoidance', name=_('Fast Reroute')),
         FieldSet(
             'area_auth_type',
             'area_auth_key',
@@ -229,6 +230,8 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'lsp_refresh_interval',
             'lsp_mtu',
             'te_enabled',
+            'fast_reroute',
+            'microloop_avoidance',
             'area_auth_type',
             'area_auth_key',
             'domain_auth_type',
@@ -242,6 +245,7 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'overload_bit': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'overload_on_startup': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'te_enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'microloop_avoidance': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         }
 
 
@@ -278,6 +282,8 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'metric',
             'passive',
             'bfd_enabled',
+            'frr_enabled',
+            'frr_protection',
             name=_('Interface'),
         ),
         FieldSet(
@@ -302,6 +308,8 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
             'metric',
             'passive',
             'bfd_enabled',
+            'frr_enabled',
+            'frr_protection',
             'csnp_interval',
             'retransmit_interval',
             'lsp_interval',
@@ -316,6 +324,7 @@ class ISISInterfaceForm(ISISSettingMixin, PrimaryModelForm):
         widgets = {
             'passive': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'bfd_enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'frr_enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         }
 
     def __init__(self, *args, **kwargs):

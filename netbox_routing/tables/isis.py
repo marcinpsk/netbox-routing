@@ -123,6 +123,8 @@ class ISISInterfaceTable(NetBoxTable):
             'passive',
             'hello_auth_type',
             'bfd_enabled',
+            'frr_enabled',
+            'frr_protection',
         )
         default_columns = (
             'pk',

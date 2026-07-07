@@ -298,6 +298,20 @@ class ISISInstance(PrimaryModel):
         null=True,
         help_text=_('IS-IS traffic-engineering enabled.'),
     )
+    fast_reroute = models.CharField(
+        verbose_name=_('Fast reroute'),
+        max_length=16,
+        choices=choices.ISISFastRerouteChoices,
+        blank=True,
+        default='',
+        help_text=_('Process-wide IP fast-reroute computation (LFA, Remote-LFA or TI-LFA).'),
+    )
+    microloop_avoidance = models.BooleanField(
+        verbose_name=_('Micro-loop avoidance'),
+        blank=True,
+        null=True,
+        help_text=_('Delay post-convergence forwarding to avoid transient micro-loops.'),
+    )
     # Segment-routing state (enabled + node MSD, plus the SRGB/Node-SID detail) lives
     # on the dedicated 1:1 ISISSegmentRouting child model — not duplicated here.
     distance = models.PositiveSmallIntegerField(
@@ -426,6 +440,20 @@ class ISISInterface(PrimaryModel):
         default='',
         help_text=_('IS-IS per-interface hello (IIH) authentication key (plaintext — '
                     'routing-protocol auth, not config access).'),
+    )
+    frr_enabled = models.BooleanField(
+        verbose_name=_('FRR enabled'),
+        blank=True,
+        null=True,
+        help_text=_('Fast-reroute backup computation on this interface (False = explicitly excluded).'),
+    )
+    frr_protection = models.CharField(
+        verbose_name=_('FRR protection'),
+        max_length=8,
+        choices=choices.ISISFrrProtectionChoices,
+        blank=True,
+        default='',
+        help_text=_('Requested repair coverage: link protection or node (node-link) protection.'),
     )
     bfd_enabled = models.BooleanField(
         verbose_name=_('BFD enabled'),

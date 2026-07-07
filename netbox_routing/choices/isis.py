@@ -6,6 +6,8 @@ __all__ = (
     'ISISAddressFamilyChoices',
     'ISISAuthTypeChoices',
     'ISISCircuitTypeChoices',
+    'ISISFastRerouteChoices',
+    'ISISFrrProtectionChoices',
     'ISISIsTypeChoices',
     'ISISMetricStyleChoices',
     'ISISNetworkTypeChoices',
@@ -76,6 +78,41 @@ class ISISMetricStyleChoices(ChoiceSet):
         (WIDE, 'Wide'),
         (NARROW, 'Narrow'),
         (TRANSITION, 'Transition'),
+    )
+
+
+class ISISFastRerouteChoices(ChoiceSet):
+    """Process-wide IP fast-reroute computation flavour.
+
+    IOS-XR 'fast-reroute per-prefix [remote-lfa|ti-lfa]', Junos
+    backup-spf-options [use-post-convergence-lfa], Nokia loopfree-alternate
+    [remote-lfa|ti-lfa], Arrcus fast-reroute augment.
+    """
+
+    LFA = 'lfa'
+    REMOTE_LFA = 'remote-lfa'
+    TI_LFA = 'ti-lfa'
+
+    CHOICES = (
+        (LFA, 'LFA'),
+        (REMOTE_LFA, 'Remote LFA'),
+        (TI_LFA, 'TI-LFA'),
+    )
+
+
+class ISISFrrProtectionChoices(ChoiceSet):
+    """Per-interface repair coverage requested from the FRR computation.
+
+    'node' covers node-and-link (Junos node-link-protection); 'link' is
+    link-only.
+    """
+
+    LINK = 'link'
+    NODE = 'node'
+
+    CHOICES = (
+        (LINK, 'Link protection'),
+        (NODE, 'Node protection'),
     )
 
 
