@@ -44,9 +44,19 @@ class ISISFlexAlgoSerializer(NetBoxModelSerializer):
     class Meta:
         model = ISISFlexAlgo
         fields = (
-            'url', 'id', 'display', 'instance', 'algo_id', 'metric_type', 'priority',
-            'admin_group_exclude', 'admin_group_include_any', 'admin_group_include_all',
-            'description', 'comments', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'instance',
+            'algo_id',
+            'metric_type',
+            'priority',
+            'admin_group_exclude',
+            'admin_group_include_any',
+            'admin_group_include_all',
+            'description',
+            'comments',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'instance', 'algo_id', 'metric_type')
 
@@ -59,9 +69,21 @@ class ISISPrefixSIDSerializer(NetBoxModelSerializer):
     class Meta:
         model = ISISPrefixSID
         fields = (
-            'url', 'id', 'display', 'interface', 'algorithm', 'sid_index', 'sid_label',
-            'n_flag', 'no_php', 'explicit_null', 'readvertise',
-            'description', 'comments', 'tags', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'interface',
+            'algorithm',
+            'sid_index',
+            'sid_label',
+            'n_flag',
+            'no_php',
+            'explicit_null',
+            'readvertise',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'algorithm', 'sid_index')
 
@@ -77,10 +99,27 @@ class ISISSRv6LocatorSerializer(NetBoxModelSerializer):
         # NetBoxModelSerializer's default field mapping — no explicit declaration
         # needed (mirrors StaticRouteSerializer.prefix / RouteMapEntrySerializer.vendor_ext).
         fields = (
-            'url', 'id', 'display', 'instance', 'name', 'prefix', 'algorithm',
-            'is_anycast', 'is_micro_segment', 'flavor', 'block_length', 'node_length',
-            'function_length', 'argument_length', 'isis_level', 'enabled', 'vendor_ext',
-            'description', 'comments', 'tags', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'instance',
+            'name',
+            'prefix',
+            'algorithm',
+            'is_anycast',
+            'is_micro_segment',
+            'flavor',
+            'block_length',
+            'node_length',
+            'function_length',
+            'argument_length',
+            'isis_level',
+            'enabled',
+            'vendor_ext',
+            'description',
+            'comments',
+            'tags',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'name', 'prefix')
 
@@ -93,9 +132,21 @@ class ISISLevelSerializer(NetBoxModelSerializer):
     class Meta:
         model = ISISLevel
         fields = (
-            'url', 'id', 'display', 'instance', 'level', 'default_metric',
-            'wide_metrics_only', 'preference', 'labeled_preference', 'disabled',
-            'auth_type', 'auth_key', 'description', 'comments', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'instance',
+            'level',
+            'default_metric',
+            'wide_metrics_only',
+            'preference',
+            'labeled_preference',
+            'disabled',
+            'auth_type',
+            'auth_key',
+            'description',
+            'comments',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'level', 'default_metric')
 
@@ -108,9 +159,19 @@ class ISISInterfaceLevelSerializer(NetBoxModelSerializer):
     class Meta:
         model = ISISInterfaceLevel
         fields = (
-            'url', 'id', 'display', 'interface', 'level', 'metric',
-            'hello_interval', 'hello_multiplier', 'priority', 'passive',
-            'description', 'comments', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'interface',
+            'level',
+            'metric',
+            'hello_interval',
+            'hello_multiplier',
+            'priority',
+            'passive',
+            'description',
+            'comments',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'level', 'metric')
 
@@ -123,10 +184,22 @@ class ISISSegmentRoutingSerializer(NetBoxModelSerializer):
     class Meta:
         model = ISISSegmentRouting
         fields = (
-            'url', 'id', 'display', 'instance', 'enabled', 'srv6_enabled', 'prefix_sid_range',
-            'srgb_start', 'srgb_range', 'srlb_start', 'srlb_range',
-            'maximum_sid_depth', 'tunnel_table_pref',
-            'description', 'comments', 'custom_fields',
+            'url',
+            'id',
+            'display',
+            'instance',
+            'enabled',
+            'srv6_enabled',
+            'prefix_sid_range',
+            'srgb_start',
+            'srgb_range',
+            'srlb_start',
+            'srlb_range',
+            'maximum_sid_depth',
+            'tunnel_table_pref',
+            'description',
+            'comments',
+            'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'enabled', 'prefix_sid_range')
 

@@ -115,10 +115,12 @@ class RouteMapEntryType(PrimaryObjectType):
         Annotated["ASPathType", strawberry.lazy('netbox_routing.graphql.types')] | None
     )
     apply_policy: (
-        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')] | None
+        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
     )
     call_policy: (
-        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')] | None
+        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
     )
 
 

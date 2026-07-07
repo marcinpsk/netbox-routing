@@ -54,8 +54,12 @@ class ISISInstanceModelTestCase(TestCase):
         # (IOS-XR hmac-sha-256, Junos/Nokia key-chain algorithms). full_clean
         # exercises both choice membership and the column length ('hmac-sha-256'
         # is 12 chars — longer than the original max_length=10).
-        self._instance(area_auth_type='hmac-sha-256', area_auth_key='secret').full_clean()
-        self._instance(domain_auth_type='hmac-sha-1', domain_auth_key='secret').full_clean()
+        self._instance(
+            area_auth_type='hmac-sha-256', area_auth_key='secret'
+        ).full_clean()
+        self._instance(
+            domain_auth_type='hmac-sha-1', domain_auth_key='secret'
+        ).full_clean()
 
     def test_fast_reroute_and_microloop_accepted(self):
         # Process-wide IP-FRR flavour (LFA / Remote-LFA / TI-LFA — IOS-XR
@@ -168,7 +172,9 @@ class ISISInterfaceModelTestCase(TestCase):
         self._iface(n=10, hello_auth_type='md5', hello_auth_key='secret').clean()
 
     def test_hello_auth_hmac_sha_accepted(self):
-        self._iface(n=14, hello_auth_type='hmac-sha-256', hello_auth_key='secret').full_clean()
+        self._iface(
+            n=14, hello_auth_type='hmac-sha-256', hello_auth_key='secret'
+        ).full_clean()
 
     def test_frr_fields_accepted(self):
         # Per-interface fast-reroute: protection coverage (link/node — Junos
@@ -277,7 +283,9 @@ class ISISSettingModelTestCase(TestCase):
     def test_clean_rejects_non_integer_value_for_integer_key(self):
         with self.assertRaises(ValidationError) as ctx:
             ISISSetting(
-                assigned_object=self.instance, key='spf_second_wait', value='not-a-number'
+                assigned_object=self.instance,
+                key='spf_second_wait',
+                value='not-a-number',
             ).clean()
         self.assertIn('value', ctx.exception.message_dict)
 
@@ -306,7 +314,9 @@ class ISISSettingModelTestCase(TestCase):
             ('te_ipv4_router_id', '192.0.2.1'),
             ('te_ipv6_router_id', '2001:db8::1'),
         ):
-            ISISSetting(assigned_object=self.instance, key=key, value=value).full_clean()
+            ISISSetting(
+                assigned_object=self.instance, key=key, value=value
+            ).full_clean()
 
     def test_clean_rejects_non_boolean_value_for_boolean_key(self):
         with self.assertRaises(ValidationError) as ctx:
@@ -359,7 +369,9 @@ class ISISPrefixSIDModelTestCase(TestCase):
         instance = ISISInstance.objects.create(
             device=device, process_tag='CORE', net='49.0001.0000.0000.0001.00'
         )
-        loopback = Interface.objects.create(name='Loopback0', device=device, type='virtual')
+        loopback = Interface.objects.create(
+            name='Loopback0', device=device, type='virtual'
+        )
         cls.isis_interface = ISISInterface.objects.create(
             instance=instance, interface=loopback, address_family='ipv4', passive=True
         )
@@ -375,7 +387,9 @@ class ISISPrefixSIDModelTestCase(TestCase):
         ISISPrefixSID(interface=self.isis_interface, algorithm=0, sid_index=10).clean()
 
     def test_clean_accepts_label_only(self):
-        ISISPrefixSID(interface=self.isis_interface, algorithm=128, sid_label=16010).clean()
+        ISISPrefixSID(
+            interface=self.isis_interface, algorithm=128, sid_label=16010
+        ).clean()
 
     def test_db_constraint_rejects_out_of_range_algorithm(self):
         for bad in (1, 127, 256):
@@ -397,9 +411,13 @@ class ISISPrefixSIDModelTestCase(TestCase):
         self.assertEqual(self.isis_interface.prefix_sids.count(), 3)
 
     def test_unique_interface_algorithm(self):
-        ISISPrefixSID.objects.create(interface=self.isis_interface, algorithm=0, sid_index=1)
+        ISISPrefixSID.objects.create(
+            interface=self.isis_interface, algorithm=0, sid_index=1
+        )
         with self.assertRaises(IntegrityError), transaction.atomic():
-            ISISPrefixSID.objects.create(interface=self.isis_interface, algorithm=0, sid_index=2)
+            ISISPrefixSID.objects.create(
+                interface=self.isis_interface, algorithm=0, sid_index=2
+            )
 
 
 class ISISSegmentRoutingCleanTestCase(TestCase):
@@ -450,8 +468,13 @@ class ISISSRv6LocatorModelTestCase(TestCase):
     def test_clean_rejects_oversized_sid_structure(self):
         # 40 + 24 + 48 + 32 = 144 > 128
         loc = ISISSRv6Locator(
-            instance=self.instance, name='LOC1', prefix='2001:db8:0:a2::/64',
-            block_length=40, node_length=24, function_length=48, argument_length=32,
+            instance=self.instance,
+            name='LOC1',
+            prefix='2001:db8:0:a2::/64',
+            block_length=40,
+            node_length=24,
+            function_length=48,
+            argument_length=32,
         )
         with self.assertRaises(ValidationError):
             loc.clean()
@@ -459,8 +482,12 @@ class ISISSRv6LocatorModelTestCase(TestCase):
     def test_clean_accepts_within_128(self):
         # 40 + 24 + 16 = 80
         ISISSRv6Locator(
-            instance=self.instance, name='LOC1', prefix='2001:db8:0:a2::/64',
-            block_length=40, node_length=24, function_length=16,
+            instance=self.instance,
+            name='LOC1',
+            prefix='2001:db8:0:a2::/64',
+            block_length=40,
+            node_length=24,
+            function_length=16,
         ).clean()
 
     def test_clean_accepts_derived_lengths(self):
@@ -499,9 +526,15 @@ class ISISMigrationStateTestCase(TestCase):
 
     #: every IS-IS PrimaryModel — all subclass DeleteMixin via PrimaryModel
     ISIS_MODELS = (
-        'isisinstance', 'isisinterface', 'isissetting', 'isislevel',
-        'isisinterfacelevel', 'isissegmentrouting', 'isisflexalgo',
-        'isisprefixsid', 'isissrv6locator',
+        'isisinstance',
+        'isisinterface',
+        'isissetting',
+        'isislevel',
+        'isisinterfacelevel',
+        'isissegmentrouting',
+        'isisflexalgo',
+        'isisprefixsid',
+        'isissrv6locator',
     )
 
     def test_migration_bases_include_delete_mixin(self):
@@ -531,12 +564,17 @@ class ISISMigrationStateTestCase(TestCase):
 
         out = StringIO()
         call_command(
-            'makemigrations', 'netbox_routing',
-            dry_run=True, verbosity=1, stdout=out, stderr=out,
+            'makemigrations',
+            'netbox_routing',
+            dry_run=True,
+            verbosity=1,
+            stdout=out,
+            stderr=out,
         )
         output = out.getvalue().lower()
         pending = [name for name in self.ISIS_MODELS if name in output]
         self.assertEqual(
-            pending, [],
+            pending,
+            [],
             f'pending IS-IS migration changes detected:\n{out.getvalue()}',
         )

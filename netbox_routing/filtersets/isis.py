@@ -47,7 +47,9 @@ __all__ = (
 @register_filterset
 class ISISFlexAlgoFilterSet(NetBoxModelFilterSet):
     instance_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='instance', queryset=ISISInstance.objects.all(), label='Instance (ID)'
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label='Instance (ID)',
     )
 
     class Meta:
@@ -61,7 +63,9 @@ class ISISFlexAlgoFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class ISISPrefixSIDFilterSet(NetBoxModelFilterSet):
     interface_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='interface', queryset=ISISInterface.objects.all(), label='Interface (ID)'
+        field_name='interface',
+        queryset=ISISInterface.objects.all(),
+        label='Interface (ID)',
     )
 
     class Meta:
@@ -75,7 +79,9 @@ class ISISPrefixSIDFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class ISISSRv6LocatorFilterSet(NetBoxModelFilterSet):
     instance_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='instance', queryset=ISISInstance.objects.all(), label='Instance (ID)'
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label='Instance (ID)',
     )
     # prefix is an IPNetworkField; auto-generating a filter for it fails, so mirror
     # StaticRouteFilterSet's explicit CharFilter + CIDR-normalising method.
@@ -119,7 +125,9 @@ class ISISSettingFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class ISISLevelFilterSet(NetBoxModelFilterSet):
     instance_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='instance', queryset=ISISInstance.objects.all(), label='Instance (ID)'
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label='Instance (ID)',
     )
 
     class Meta:
@@ -133,7 +141,9 @@ class ISISLevelFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class ISISInterfaceLevelFilterSet(NetBoxModelFilterSet):
     interface_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='interface', queryset=ISISInterface.objects.all(), label='Interface (ID)'
+        field_name='interface',
+        queryset=ISISInterface.objects.all(),
+        label='Interface (ID)',
     )
 
     class Meta:
@@ -147,7 +157,9 @@ class ISISInterfaceLevelFilterSet(NetBoxModelFilterSet):
 @register_filterset
 class ISISSegmentRoutingFilterSet(NetBoxModelFilterSet):
     instance_id = django_filters.ModelMultipleChoiceFilter(
-        field_name='instance', queryset=ISISInstance.objects.all(), label='Instance (ID)'
+        field_name='instance',
+        queryset=ISISInstance.objects.all(),
+        label='Instance (ID)',
     )
 
     class Meta:

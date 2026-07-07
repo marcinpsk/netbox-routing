@@ -37,12 +37,17 @@ class RouteMapStructuredDetailTestCase(TestCase):
             match_afi=['ipv4', 'vpn-ipv4'],
             call_policy=cls.sub_policy,
             apply_policy=cls.sub_policy,
-            match_condition={'op': 'or', 'args': [{'match': 'community', 'ref': 'CL-A'}]},
+            match_condition={
+                'op': 'or',
+                'args': [{'match': 'community', 'ref': 'CL-A'}],
+            },
             vendor_ext={'junos': {'priority': 'high'}},
         )
         cls.entry.match_aspath.add(cls.aspath)
         RouteMapEntrySetCommunity.objects.create(
-            route_map_entry=cls.entry, operation='add', community_list=cls.community_list
+            route_map_entry=cls.entry,
+            operation='add',
+            community_list=cls.community_list,
         )
 
     def setUp(self):
@@ -53,7 +58,9 @@ class RouteMapStructuredDetailTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertIn('ipv4, vpn-ipv4', content)  # match_afi_display
-        self.assertIn('add CL-SET', content)  # set_communities (RouteMapEntrySetCommunity __str__)
+        self.assertIn(
+            'add CL-SET', content
+        )  # set_communities (RouteMapEntrySetCommunity __str__)
         self.assertIn('SUB-POL', content)  # call_policy / apply_policy linkified
         self.assertIn('AP-DETAIL', content)  # match_aspath now resolves (accessor fix)
         self.assertIn('Match Condition', content)  # match_condition JSON panel

@@ -182,7 +182,9 @@ class RouteMapSerializer(NetBoxModelSerializer):
 
 
 class RouteMapEntrySetCommunitySerializer(serializers.ModelSerializer):
-    community_list = CommunityListSerializer(nested=True, required=False, allow_null=True)
+    community_list = CommunityListSerializer(
+        nested=True, required=False, allow_null=True
+    )
     communities = CommunitySerializer(nested=True, many=True, required=False)
 
     class Meta:

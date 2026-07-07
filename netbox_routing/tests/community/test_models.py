@@ -57,7 +57,8 @@ class CommunityTestCase(TestCase):
     def test_universal_forms_accepted(self):
         """The single universal field stores every device form verbatim — numeric, well-known
         keyword, typed extended, RFC 8092 large (prefixed and bare), and match-only regex —
-        with NO part cap (the kind is derived by parsing, not constrained by the validator)."""
+        with NO part cap (the kind is derived by parsing, not constrained by the validator).
+        """
         role = Role.objects.get(name='Test Role')
         for value in (
             '1111:1234',  # standard
@@ -155,18 +156,32 @@ class CommunityKindTestCase(TestCase):
 
     def test_bare_three_part_is_large(self):
         # A bare a:b:c (no keyword) is the Cisco large-community form.
-        self.assertEqual(community_kind('1111:6370:1234'), CommunityKindChoices.KIND_LARGE)
+        self.assertEqual(
+            community_kind('1111:6370:1234'), CommunityKindChoices.KIND_LARGE
+        )
 
     def test_ext_prefix_aliases(self):
-        for value in ('rt:1:2', 'route-target:1:2', 'origin:1:2', 'soo:1:2', 'bandwidth:1:2'):
+        for value in (
+            'rt:1:2',
+            'route-target:1:2',
+            'origin:1:2',
+            'soo:1:2',
+            'bandwidth:1:2',
+        ):
             with self.subTest(value=value):
-                self.assertEqual(community_kind(value), CommunityKindChoices.KIND_EXTENDED)
+                self.assertEqual(
+                    community_kind(value), CommunityKindChoices.KIND_EXTENDED
+                )
 
     def test_match_keyword(self):
         self.assertEqual(community_match_keyword('1111:1234'), 'community')
         self.assertEqual(community_match_keyword('target:1111:1234'), 'extcommunity')
-        self.assertEqual(community_match_keyword('large:1111:6370:1234'), 'large-community')
-        self.assertEqual(Community(community='target:1:2').match_keyword, 'extcommunity')
+        self.assertEqual(
+            community_match_keyword('large:1111:6370:1234'), 'large-community'
+        )
+        self.assertEqual(
+            Community(community='target:1:2').match_keyword, 'extcommunity'
+        )
 
 
 class CommunityListTestCase(TestCase):

@@ -17,7 +17,11 @@ from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
 
 from netbox_routing.models.community import *
-from netbox_routing.choices import ActionChoices, CommunitySetActionChoices, RoutePolicyAFIChoices
+from netbox_routing.choices import (
+    ActionChoices,
+    CommunitySetActionChoices,
+    RoutePolicyAFIChoices,
+)
 from netbox_routing.constants.objects import PREFIX_ASSIGNMENT_MODELS
 
 __all__ = (
@@ -265,7 +269,9 @@ class RouteMap(PrimaryModel):
         null=True,
         blank=True,
         verbose_name=_('Default action'),
-        help_text=_('Action applied when no entry matches (a vendor policy default-action); blank = none.'),
+        help_text=_(
+            'Action applied when no entry matches (a vendor policy default-action); blank = none.'
+        ),
     )
 
     clone_fields = ()
@@ -313,14 +319,20 @@ def validate_match_condition(node, depth=0):
             raise ValidationError(_('match_condition op must be one of and/or/not.'))
         args = node.get('args')
         if not isinstance(args, list) or not args:
-            raise ValidationError(_('match_condition op requires a non-empty "args" list.'))
+            raise ValidationError(
+                _('match_condition op requires a non-empty "args" list.')
+            )
         if node['op'] == 'not' and len(args) != 1:
-            raise ValidationError(_('match_condition "not" takes exactly one argument.'))
+            raise ValidationError(
+                _('match_condition "not" takes exactly one argument.')
+            )
         for arg in args:
             validate_match_condition(arg, depth + 1)
     elif 'match' in node:
         if not isinstance(node['match'], str) or not node['match']:
-            raise ValidationError(_('match_condition leaf "match" must be a non-empty string.'))
+            raise ValidationError(
+                _('match_condition leaf "match" must be a non-empty string.')
+            )
     else:
         raise ValidationError(_('match_condition node needs an "op" or a "match" key.'))
 
@@ -362,7 +374,9 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         null=True,
         verbose_name=_('Match address-family'),
-        help_text=_('Address families this entry matches (Junos from-family / Nokia from-family); empty = any.'),
+        help_text=_(
+            'Address families this entry matches (Junos from-family / Nokia from-family); empty = any.'
+        ),
     )
     match_condition = models.JSONField(
         blank=True,
@@ -382,7 +396,9 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         related_name='called_by_entries',
         verbose_name=_('Call policy (match)'),
-        help_text=_('A policy referenced as a match condition / subroutine (Junos from-policy, IOS-XR apply).'),
+        help_text=_(
+            'A policy referenced as a match condition / subroutine (Junos from-policy, IOS-XR apply).'
+        ),
     )
     match = models.JSONField(
         blank=True,
@@ -413,7 +429,9 @@ class RouteMapEntry(PermitDenyChoiceMixin, PrimaryModel):
         blank=True,
         related_name='applied_by_entries',
         verbose_name=_('Apply policy (tail-call)'),
-        help_text=_('A policy tail-called from this entry (IOS-XR apply / Junos policy chaining).'),
+        help_text=_(
+            'A policy tail-called from this entry (IOS-XR apply / Junos policy chaining).'
+        ),
     )
 
     clone_fields = (

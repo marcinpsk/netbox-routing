@@ -4,7 +4,11 @@ from django.utils.translation import gettext as _
 
 from netbox.models import PrimaryModel
 
-from netbox_routing.choices import ActionChoices, CommunityKindChoices, CommunityStatusChoices
+from netbox_routing.choices import (
+    ActionChoices,
+    CommunityKindChoices,
+    CommunityStatusChoices,
+)
 
 __all__ = (
     'CommunityList',
@@ -68,7 +72,11 @@ def community_kind(value):
     if v.lower() in COMMUNITY_WELL_KNOWN:
         return CommunityKindChoices.KIND_STANDARD
     # bare three-part (a:b:c) is a Cisco large community; 2-part / regex is standard
-    return CommunityKindChoices.KIND_LARGE if v.count(':') >= 2 else CommunityKindChoices.KIND_STANDARD
+    return (
+        CommunityKindChoices.KIND_LARGE
+        if v.count(':') >= 2
+        else CommunityKindChoices.KIND_STANDARD
+    )
 
 
 def community_match_keyword(value):

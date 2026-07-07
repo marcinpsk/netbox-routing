@@ -141,9 +141,9 @@ class ISISSettingChoices(ChoiceSet):
     """
 
     # SPF/LSP backoff sub-knob — vendor-specific algorithm (time vs count)
-    SPF_SECOND_WAIT = 'spf_second_wait'        # Cisco/Nokia/IOS-XR: ms
-    SPF_RAPID_RUNS = 'spf_rapid_runs'          # Junos: count of rapid runs
-    LSP_SECOND_WAIT = 'lsp_second_wait'        # Cisco/Nokia/IOS-XR: ms
+    SPF_SECOND_WAIT = 'spf_second_wait'  # Cisco/Nokia/IOS-XR: ms
+    SPF_RAPID_RUNS = 'spf_rapid_runs'  # Junos: count of rapid runs
+    LSP_SECOND_WAIT = 'lsp_second_wait'  # Cisco/Nokia/IOS-XR: ms
 
     # Traffic-engineering router-ID (IOS/IOS-XR 'mpls traffic-eng router-id',
     # Arrcus traffic-engineering augment; derived from the global router-id on

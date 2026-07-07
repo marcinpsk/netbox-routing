@@ -302,11 +302,15 @@ class RouteMapEntryView(GetRelatedModelsMixin, ObjectView):
         left_panels=[
             RouteMapEntryPanel(title=_('Route Map Entry')),
             RouteMapEntryMatchPanel(title=_('Match Actions')),
-            panels.JSONPanel('match_condition', title=_('Match Condition'), copy_button=True),
+            panels.JSONPanel(
+                'match_condition', title=_('Match Condition'), copy_button=True
+            ),
             panels.JSONPanel('match', title=_('Match Parameters'), copy_button=True),
             RouteMapEntrySetPanel(title=_('Set Actions')),
             panels.JSONPanel('set', title=_('Set Parameters'), copy_button=True),
-            panels.JSONPanel('vendor_ext', title=_('Vendor Extensions'), copy_button=True),
+            panels.JSONPanel(
+                'vendor_ext', title=_('Vendor Extensions'), copy_button=True
+            ),
             TagsPanel(),
         ],
         right_panels=[

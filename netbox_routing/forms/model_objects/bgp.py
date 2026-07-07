@@ -693,7 +693,9 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
-        FieldSet('enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')),
+        FieldSet(
+            'enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')
+        ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 

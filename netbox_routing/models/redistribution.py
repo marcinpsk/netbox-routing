@@ -7,6 +7,7 @@ routing protocol scope (OSPFInstance, ISISInstance, or BGPAddressFamily).
 Design: GFK destination (mirrors fork BGPSetting idiom), lenient source
 identification (source_protocol enum + nullable source_ref string).
 """
+
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
@@ -15,7 +16,6 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
-
 
 __all__ = ('Redistribution',)
 
@@ -41,13 +41,19 @@ class MetricTypeChoices(models.TextChoices):
 # metric_type values it accepts. A destination not listed here (e.g. BGP) does
 # not support a metric_type at all.
 METRIC_TYPES_BY_DESTINATION = {
-    'ospfinstance': frozenset((MetricTypeChoices.OSPF_TYPE1, MetricTypeChoices.OSPF_TYPE2)),
-    'isisinstance': frozenset((MetricTypeChoices.ISIS_INTERNAL, MetricTypeChoices.ISIS_EXTERNAL)),
+    'ospfinstance': frozenset(
+        (MetricTypeChoices.OSPF_TYPE1, MetricTypeChoices.OSPF_TYPE2)
+    ),
+    'isisinstance': frozenset(
+        (MetricTypeChoices.ISIS_INTERNAL, MetricTypeChoices.ISIS_EXTERNAL)
+    ),
 }
 
 # Destination scope is a GFK, but only these protocol-scope models are valid
 # targets (BGP destinations carry no metric_type, hence absent above).
-ALLOWED_DESTINATION_MODELS = frozenset(('ospfinstance', 'isisinstance', 'bgpaddressfamily'))
+ALLOWED_DESTINATION_MODELS = frozenset(
+    ('ospfinstance', 'isisinstance', 'bgpaddressfamily')
+)
 
 
 class Redistribution(PrimaryModel):
@@ -83,7 +89,9 @@ class Redistribution(PrimaryModel):
     )
     source_ref = models.CharField(
         verbose_name=_('Source Reference'),
-        help_text=_('Process ID, area tag, or ASN identifying the source instance. Leave blank for connected/static.'),
+        help_text=_(
+            'Process ID, area tag, or ASN identifying the source instance. Leave blank for connected/static.'
+        ),
         max_length=64,
         blank=True,
         default='',
@@ -109,16 +117,32 @@ class Redistribution(PrimaryModel):
         default='',
     )
 
-    clone_fields = ('destination_type', 'destination_id', 'source_protocol', 'source_ref', 'route_map')
+    clone_fields = (
+        'destination_type',
+        'destination_id',
+        'source_protocol',
+        'source_ref',
+        'route_map',
+    )
     prerequisite_models = ()
 
     class Meta:
-        ordering = ['destination_type', 'destination_id', 'source_protocol', 'source_ref']
+        ordering = [
+            'destination_type',
+            'destination_id',
+            'source_protocol',
+            'source_ref',
+        ]
         verbose_name = 'Redistribution'
         verbose_name_plural = 'Redistributions'
         constraints = [
             models.UniqueConstraint(
-                fields=('destination_type', 'destination_id', 'source_protocol', 'source_ref'),
+                fields=(
+                    'destination_type',
+                    'destination_id',
+                    'source_protocol',
+                    'source_ref',
+                ),
                 name='netbox_routing_redistribution_unique_destination_source',
             ),
         ]
@@ -134,12 +158,19 @@ class Redistribution(PrimaryModel):
 
             # Destination must be one of the supported protocol-scope models.
             if model_name not in ALLOWED_DESTINATION_MODELS:
-                label = model._meta.verbose_name if model is not None else self.destination_type
-                raise ValidationError({
-                    'destination_type': _(
-                        '%(model)s is not a valid redistribution destination.'
-                    ) % {'model': label}
-                })
+                label = (
+                    model._meta.verbose_name
+                    if model is not None
+                    else self.destination_type
+                )
+                raise ValidationError(
+                    {
+                        'destination_type': _(
+                            '%(model)s is not a valid redistribution destination.'
+                        )
+                        % {'model': label}
+                    }
+                )
 
         # metric_type is protocol-specific: constrain it to the values valid for
         # the selected destination scope so e.g. an IS-IS metric_type can't be
@@ -150,14 +181,17 @@ class Redistribution(PrimaryModel):
                 destination_label = (
                     model._meta.verbose_name if model is not None else _('destination')
                 )
-                raise ValidationError({
-                    'metric_type': _(
-                        'Metric type "%(value)s" is not valid for a %(destination)s destination.'
-                    ) % {
-                        'value': self.metric_type,
-                        'destination': destination_label,
+                raise ValidationError(
+                    {
+                        'metric_type': _(
+                            'Metric type "%(value)s" is not valid for a %(destination)s destination.'
+                        )
+                        % {
+                            'value': self.metric_type,
+                            'destination': destination_label,
+                        }
                     }
-                })
+                )
 
     def __str__(self):
         src = f'{self.source_protocol}'

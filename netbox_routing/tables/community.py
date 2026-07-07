@@ -17,7 +17,9 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(verbose_name=_('Name'), linkify=True)
     community = tables.Column(verbose_name=_('Community'), linkify=True)
     # Derived from the community text (no stored column); see Community.kind.
-    kind = columns.ChoiceFieldColumn(verbose_name=_('Kind'), accessor='kind', orderable=False)
+    kind = columns.ChoiceFieldColumn(
+        verbose_name=_('Kind'), accessor='kind', orderable=False
+    )
     role = tables.Column(verbose_name=_('Role'), linkify=True)
 
     class Meta(NetBoxTable.Meta):

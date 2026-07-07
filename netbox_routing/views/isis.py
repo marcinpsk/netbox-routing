@@ -122,11 +122,12 @@ __all__ = (
 
 # IS-IS Settings (EAV)
 
+
 @register_model_view(ISISSetting, name='list', path='', detail=False)
 class ISISSettingListView(ObjectListView):
-    queryset = ISISSetting.objects.select_related('assigned_object_type').prefetch_related(
-        'assigned_object'
-    )
+    queryset = ISISSetting.objects.select_related(
+        'assigned_object_type'
+    ).prefetch_related('assigned_object')
     filterset = ISISSettingFilterSet
     filterset_form = ISISSettingFilterForm
     table = ISISSettingTable
@@ -183,6 +184,7 @@ class ISISSettingBulkDeleteView(BulkDeleteView):
 
 # IS-IS Level (per-level instance tuning)
 
+
 @register_model_view(ISISLevel, name='list', path='', detail=False)
 class ISISLevelListView(ObjectListView):
     queryset = ISISLevel.objects.select_related('instance__device')
@@ -227,6 +229,7 @@ class ISISLevelBulkDeleteView(BulkDeleteView):
 
 
 # IS-IS Interface Level (per-level interface tuning)
+
 
 @register_model_view(ISISInterfaceLevel, name='list', path='', detail=False)
 class ISISInterfaceLevelListView(ObjectListView):
@@ -273,6 +276,7 @@ class ISISInterfaceLevelBulkDeleteView(BulkDeleteView):
 
 # IS-IS Segment Routing (1:1 with instance)
 
+
 @register_model_view(ISISSegmentRouting, name='list', path='', detail=False)
 class ISISSegmentRoutingListView(ObjectListView):
     queryset = ISISSegmentRouting.objects.select_related('instance__device')
@@ -317,6 +321,7 @@ class ISISSegmentRoutingBulkDeleteView(BulkDeleteView):
 
 
 # IS-IS Flex-Algo
+
 
 @register_model_view(ISISFlexAlgo, name='list', path='', detail=False)
 class ISISFlexAlgoListView(ObjectListView):
@@ -363,6 +368,7 @@ class ISISFlexAlgoBulkDeleteView(BulkDeleteView):
 
 # IS-IS Prefix-SID (per-interface node-SID)
 
+
 @register_model_view(ISISPrefixSID, name='list', path='', detail=False)
 class ISISPrefixSIDListView(ObjectListView):
     queryset = ISISPrefixSID.objects.select_related('interface__interface')
@@ -407,6 +413,7 @@ class ISISPrefixSIDBulkDeleteView(BulkDeleteView):
 
 
 # IS-IS SRv6 Locator (per-instance locator)
+
 
 @register_model_view(ISISSRv6Locator, name='list', path='', detail=False)
 class ISISSRv6LocatorListView(ObjectListView):

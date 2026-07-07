@@ -242,7 +242,10 @@ class RouteMapEntryTestCase(TestCase):
             route_map=self.route_map,
             action='permit',
             sequence=10,
-            vendor_ext={'timos': {'default_action': True}, 'junos': {'priority': 'high'}},
+            vendor_ext={
+                'timos': {'default_action': True},
+                'junos': {'priority': 'high'},
+            },
         )
         rme.full_clean()
         rme.save()
@@ -257,22 +260,30 @@ class RouteMapEntryTestCase(TestCase):
 
         cl = CommunityList.objects.create(name='CL-SET')
         c1 = Community.objects.create(community='65000:1')
-        rme = RouteMapEntry.objects.create(route_map=self.route_map, action='permit', sequence=20)
+        rme = RouteMapEntry.objects.create(
+            route_map=self.route_map, action='permit', sequence=20
+        )
 
         add = RouteMapEntrySetCommunity.objects.create(
             route_map_entry=rme, operation='add', community_list=cl
         )
-        inline = RouteMapEntrySetCommunity.objects.create(route_map_entry=rme, operation='set')
+        inline = RouteMapEntrySetCommunity.objects.create(
+            route_map_entry=rme, operation='set'
+        )
         inline.communities.add(c1)
 
         self.assertEqual(rme.set_communities.count(), 2)
         self.assertEqual(rme.set_communities.get(operation='add').community_list, cl)
-        self.assertEqual(list(rme.set_communities.get(operation='set').communities.all()), [c1])
+        self.assertEqual(
+            list(rme.set_communities.get(operation='set').communities.all()), [c1]
+        )
         self.assertEqual(str(add), 'add CL-SET')
         self.assertEqual(str(inline), 'set inline')
 
     def test_set_community_operation_rejects_unknown(self):
-        rme = RouteMapEntry.objects.create(route_map=self.route_map, action='permit', sequence=21)
+        rme = RouteMapEntry.objects.create(
+            route_map=self.route_map, action='permit', sequence=21
+        )
         obj = RouteMapEntrySetCommunity(route_map_entry=rme, operation='bogus')
         with self.assertRaises(ValidationError):
             obj.full_clean()
@@ -304,7 +315,11 @@ class RouteMapEntryTestCase(TestCase):
 
         sub = RouteMap.objects.create(name='SUB-POLICY')
         rme = RouteMapEntry(
-            route_map=self.route_map, action='permit', sequence=40, call_policy=sub, apply_policy=sub
+            route_map=self.route_map,
+            action='permit',
+            sequence=40,
+            call_policy=sub,
+            apply_policy=sub,
         )
         rme.full_clean()
         rme.save()
@@ -340,7 +355,10 @@ class RouteMapEntryTestCase(TestCase):
             {'foo': 'bar'},  # neither op nor match
         ):
             rme = RouteMapEntry(
-                route_map=self.route_map, action='permit', sequence=42, match_condition=bad
+                route_map=self.route_map,
+                action='permit',
+                sequence=42,
+                match_condition=bad,
             )
             with self.assertRaises(ValidationError):
                 rme.full_clean()
