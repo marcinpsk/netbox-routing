@@ -207,11 +207,11 @@ class ISISInstance(PrimaryModel):
     )
     area_auth_type = models.CharField(
         verbose_name=_('Area auth type'),
-        max_length=10,
+        max_length=16,
         choices=choices.ISISAuthTypeChoices,
         blank=True,
         default='',
-        help_text=_('IS-IS area password authentication type (md5 or text).'),
+        help_text=_('IS-IS area password authentication type (md5, text or an HMAC-SHA variant).'),
     )
     area_auth_key = models.CharField(
         verbose_name=_('Area auth key'),
@@ -222,11 +222,11 @@ class ISISInstance(PrimaryModel):
     )
     domain_auth_type = models.CharField(
         verbose_name=_('Domain auth type'),
-        max_length=10,
+        max_length=16,
         choices=choices.ISISAuthTypeChoices,
         blank=True,
         default='',
-        help_text=_('IS-IS domain password authentication type (md5 or text).'),
+        help_text=_('IS-IS domain password authentication type (md5, text or an HMAC-SHA variant).'),
     )
     domain_auth_key = models.CharField(
         verbose_name=_('Domain auth key'),
@@ -413,11 +413,11 @@ class ISISInterface(PrimaryModel):
     passive = models.BooleanField(verbose_name=_('Passive'), blank=True, null=True)
     hello_auth_type = models.CharField(
         verbose_name=_('Hello auth type'),
-        max_length=10,
+        max_length=16,
         choices=choices.ISISAuthTypeChoices,
         blank=True,
         default='',
-        help_text=_('IS-IS per-interface hello (IIH) authentication type (md5 or text).'),
+        help_text=_('IS-IS per-interface hello (IIH) authentication type (md5, text or an HMAC-SHA variant).'),
     )
     hello_auth_key = models.CharField(
         verbose_name=_('Hello auth key'),
@@ -572,11 +572,11 @@ class ISISLevel(PrimaryModel):
     )
     auth_type = models.CharField(
         verbose_name=_('Auth type'),
-        max_length=10,
+        max_length=16,
         choices=choices.ISISAuthTypeChoices,
         blank=True,
         default='',
-        help_text=_('Per-level authentication type (md5 or text).'),
+        help_text=_('Per-level authentication type (md5, text or an HMAC-SHA variant).'),
     )
     auth_key = models.CharField(
         verbose_name=_('Auth key'),

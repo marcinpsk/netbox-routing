@@ -82,10 +82,14 @@ class ISISMetricStyleChoices(ChoiceSet):
 class ISISAuthTypeChoices(ChoiceSet):
     MD5 = 'md5'
     TEXT = 'text'
+    HMAC_SHA1 = 'hmac-sha-1'
+    HMAC_SHA256 = 'hmac-sha-256'
 
     CHOICES = (
         (MD5, 'MD5'),
         (TEXT, 'Cleartext'),
+        (HMAC_SHA1, 'HMAC-SHA-1'),
+        (HMAC_SHA256, 'HMAC-SHA-256'),
     )
 
 
@@ -104,6 +108,13 @@ class ISISSettingChoices(ChoiceSet):
     SPF_RAPID_RUNS = 'spf_rapid_runs'          # Junos: count of rapid runs
     LSP_SECOND_WAIT = 'lsp_second_wait'        # Cisco/Nokia/IOS-XR: ms
 
+    # Traffic-engineering router-ID (IOS/IOS-XR 'mpls traffic-eng router-id',
+    # Arrcus traffic-engineering augment; derived from the global router-id on
+    # Junos/Nokia, where it reads as absent). Value is an IP address or, on
+    # Cisco platforms, an interface reference — a string either way.
+    TE_IPV4_ROUTER_ID = 'te_ipv4_router_id'
+    TE_IPV6_ROUTER_ID = 'te_ipv6_router_id'
+
     # Behavioural long-tail
     GRACEFUL_RESTART = 'graceful_restart'
     LDP_SYNC = 'ldp_sync'
@@ -120,6 +131,8 @@ class ISISSettingChoices(ChoiceSet):
         (SPF_SECOND_WAIT, 'SPF Second Wait (ms)'),
         (SPF_RAPID_RUNS, 'SPF Rapid Runs'),
         (LSP_SECOND_WAIT, 'LSP-Gen Second Wait (ms)'),
+        (TE_IPV4_ROUTER_ID, 'TE IPv4 Router-ID'),
+        (TE_IPV6_ROUTER_ID, 'TE IPv6 Router-ID'),
         (GRACEFUL_RESTART, 'Graceful Restart'),
         (LDP_SYNC, 'LDP-IGP Sync'),
         (PREFIX_SUPPRESSION, 'Prefix Suppression'),
@@ -136,6 +149,8 @@ class ISISSettingChoices(ChoiceSet):
         SPF_SECOND_WAIT: 'integer',
         SPF_RAPID_RUNS: 'integer',
         LSP_SECOND_WAIT: 'integer',
+        TE_IPV4_ROUTER_ID: 'string',
+        TE_IPV6_ROUTER_ID: 'string',
         GRACEFUL_RESTART: 'boolean',
         LDP_SYNC: 'boolean',
         PREFIX_SUPPRESSION: 'boolean',

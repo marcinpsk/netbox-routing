@@ -43,6 +43,14 @@ class ISISInstanceModelTestCase(TestCase):
     def test_clean_accepts_complete_auth_pair(self):
         self._instance(area_auth_type='md5', area_auth_key='secret').clean()
 
+    def test_hmac_sha_auth_types_accepted(self):
+        # Modern deployments authenticate with HMAC-SHA rather than md5/text
+        # (IOS-XR hmac-sha-256, Junos/Nokia key-chain algorithms). full_clean
+        # exercises both choice membership and the column length ('hmac-sha-256'
+        # is 12 chars — longer than the original max_length=10).
+        self._instance(area_auth_type='hmac-sha-256', area_auth_key='secret').full_clean()
+        self._instance(domain_auth_type='hmac-sha-1', domain_auth_key='secret').full_clean()
+
     def test_clean_accepts_no_auth(self):
         self._instance().clean()
 
@@ -143,6 +151,9 @@ class ISISInterfaceModelTestCase(TestCase):
 
     def test_clean_accepts_complete_hello_auth_pair(self):
         self._iface(n=10, hello_auth_type='md5', hello_auth_key='secret').clean()
+
+    def test_hello_auth_hmac_sha_accepted(self):
+        self._iface(n=14, hello_auth_type='hmac-sha-256', hello_auth_key='secret').full_clean()
 
     def test_clean_accepts_no_hello_auth(self):
         self._iface(n=11).clean()
@@ -259,6 +270,19 @@ class ISISSettingModelTestCase(TestCase):
                 assigned_object=self.instance, key='spf_second_wait', value='-1'
             ).clean()
         self.assertIn('value', ctx.exception.message_dict)
+
+    def test_te_router_id_keys_accepted(self):
+        # The IS-IS traffic-engineering router-ID knob (IOS/XR 'mpls traffic-eng
+        # router-id', Arrcus traffic-engineering augment; derived from the global
+        # router-id on Junos/Nokia). Without vocabulary keys a reader-emitted
+        # setting is silently filtered downstream and the value never lands.
+        # full_clean exercises key choice membership; values are strings (an IP
+        # or, on Cisco, an interface reference).
+        for key, value in (
+            ('te_ipv4_router_id', '192.0.2.1'),
+            ('te_ipv6_router_id', '2001:db8::1'),
+        ):
+            ISISSetting(assigned_object=self.instance, key=key, value=value).full_clean()
 
     def test_clean_rejects_non_boolean_value_for_boolean_key(self):
         with self.assertRaises(ValidationError) as ctx:
