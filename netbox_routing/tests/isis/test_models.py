@@ -3,7 +3,7 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from dcim.models import Interface
 from utilities.testing import create_test_device
@@ -553,6 +553,13 @@ class ISISMigrationStateTestCase(TestCase):
             dropped, [], f'CreateModel bases dropped DeleteMixin for: {dropped}'
         )
 
+    # NetBox overrides makemigrations to refuse unless settings.DEVELOPER is True (or
+    # --check is passed) — see core/management/commands/makemigrations.py. CI's
+    # configuration_testing leaves DEVELOPER=False, so force it on for this in-process
+    # dry-run; without it the command raises "development purposes only" and the guard
+    # never runs. (Local isis_test config sets DEVELOPER=True, which is why this passed
+    # locally but errored in CI.)
+    @override_settings(DEVELOPER=True)
     def test_no_pending_isis_migrations(self):
         # makemigrations is per-app, so scope the assertion to IS-IS models: a pending
         # change to any of them (e.g. a model field dropped without the matching 0033
