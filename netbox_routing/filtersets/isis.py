@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import django_filters
+import netaddr
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -26,6 +27,8 @@ from netbox_routing.models import (
     ISISInterfaceLevel,
     ISISSegmentRouting,
     ISISFlexAlgo,
+    ISISPrefixSID,
+    ISISSRv6Locator,
 )
 
 __all__ = (
@@ -36,6 +39,8 @@ __all__ = (
     'ISISInterfaceLevelFilterSet',
     'ISISSegmentRoutingFilterSet',
     'ISISFlexAlgoFilterSet',
+    'ISISPrefixSIDFilterSet',
+    'ISISSRv6LocatorFilterSet',
 )
 
 
@@ -51,6 +56,46 @@ class ISISFlexAlgoFilterSet(NetBoxModelFilterSet):
 
     def search(self, queryset, name, value):
         return queryset
+
+
+@register_filterset
+class ISISPrefixSIDFilterSet(NetBoxModelFilterSet):
+    interface_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface', queryset=ISISInterface.objects.all(), label='Interface (ID)'
+    )
+
+    class Meta:
+        model = ISISPrefixSID
+        fields = ('interface_id', 'algorithm')
+
+    def search(self, queryset, name, value):
+        return queryset
+
+
+@register_filterset
+class ISISSRv6LocatorFilterSet(NetBoxModelFilterSet):
+    instance_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='instance', queryset=ISISInstance.objects.all(), label='Instance (ID)'
+    )
+    # prefix is an IPNetworkField; auto-generating a filter for it fails, so mirror
+    # StaticRouteFilterSet's explicit CharFilter + CIDR-normalising method.
+    prefix = django_filters.CharFilter(method='filter_prefix', label='Prefix')
+
+    class Meta:
+        model = ISISSRv6Locator
+        fields = ('instance_id', 'name', 'prefix', 'algorithm', 'enabled')
+
+    def search(self, queryset, name, value):
+        return queryset
+
+    def filter_prefix(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        try:
+            query = str(netaddr.IPNetwork(value).cidr)
+            return queryset.filter(**{f'{name}': query})
+        except (netaddr.AddrFormatError, ValueError):
+            return queryset.none()
 
 
 @register_filterset

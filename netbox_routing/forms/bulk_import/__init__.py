@@ -24,6 +24,8 @@ __all__ = (
     'ISISInterfaceLevelImportForm',
     'ISISSegmentRoutingImportForm',
     'ISISFlexAlgoImportForm',
+    'ISISPrefixSIDImportForm',
+    'ISISSRv6LocatorImportForm',
     # OSPF
     'OSPFInstanceImportForm',
     'OSPFAreaImportForm',

@@ -15,6 +15,8 @@ __all__ = (
     'ISISInterfaceLevelPanel',
     'ISISSegmentRoutingPanel',
     'ISISFlexAlgoPanel',
+    'ISISPrefixSIDPanel',
+    'ISISSRv6LocatorPanel',
 )
 
 
@@ -26,6 +28,33 @@ class ISISFlexAlgoPanel(panels.ObjectAttributesPanel):
     admin_group_exclude = attrs.TextAttr('admin_group_exclude', label=_('Admin-group Exclude'))
     admin_group_include_any = attrs.TextAttr('admin_group_include_any', label=_('Admin-group Include-Any'))
     admin_group_include_all = attrs.TextAttr('admin_group_include_all', label=_('Admin-group Include-All'))
+
+
+class ISISPrefixSIDPanel(panels.ObjectAttributesPanel):
+    interface = attrs.RelatedObjectAttr('interface', linkify=True, label=_('Interface'))
+    algorithm = attrs.NumericAttr('algorithm', label=_('Algorithm'))
+    sid_index = attrs.NumericAttr('sid_index', label=_('SID Index'))
+    sid_label = attrs.NumericAttr('sid_label', label=_('SID Label'))
+    n_flag = attrs.BooleanAttr('n_flag', label=_('Node (N) Flag'))
+    no_php = attrs.BooleanAttr('no_php', label=_('No-PHP (P) Flag'))
+    explicit_null = attrs.BooleanAttr('explicit_null', label=_('Explicit-null (E) Flag'))
+    readvertise = attrs.BooleanAttr('readvertise', label=_('Re-advertise (R) Flag'))
+
+
+class ISISSRv6LocatorPanel(panels.ObjectAttributesPanel):
+    instance = attrs.RelatedObjectAttr('instance', linkify=True, label=_('Instance'))
+    name = attrs.TextAttr('name', label=_('Name'))
+    prefix = attrs.TextAttr('prefix', label=_('Prefix'))
+    algorithm = attrs.NumericAttr('algorithm', label=_('Algorithm'))
+    is_anycast = attrs.BooleanAttr('is_anycast', label=_('Anycast'))
+    is_micro_segment = attrs.BooleanAttr('is_micro_segment', label=_('Micro-segment (uSID)'))
+    flavor = attrs.TextAttr('flavor', label=_('Flavor'))
+    isis_level = attrs.ChoiceAttr('isis_level', label=_('IS-IS Level'))
+    block_length = attrs.NumericAttr('block_length', label=_('Block Length'))
+    node_length = attrs.NumericAttr('node_length', label=_('Node Length'))
+    function_length = attrs.NumericAttr('function_length', label=_('Function Length'))
+    argument_length = attrs.NumericAttr('argument_length', label=_('Argument Length'))
+    enabled = attrs.BooleanAttr('enabled', label=_('Enabled'))
 
 
 class ISISLevelPanel(panels.ObjectAttributesPanel):
@@ -53,13 +82,12 @@ class ISISInterfaceLevelPanel(panels.ObjectAttributesPanel):
 class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
     instance = attrs.RelatedObjectAttr('instance', linkify=True, label=_('Instance'))
     enabled = attrs.BooleanAttr('enabled', label=_('Enabled'))
+    srv6_enabled = attrs.BooleanAttr('srv6_enabled', label=_('SRv6 Enabled'))
     prefix_sid_range = attrs.TextAttr('prefix_sid_range', label=_('Prefix-SID Range'))
     srgb_start = attrs.NumericAttr('srgb_start', label=_('SRGB Start'))
     srgb_range = attrs.NumericAttr('srgb_range', label=_('SRGB Range'))
-    node_sid_index = attrs.NumericAttr('node_sid_index', label=_('Node-SID Index (IPv4)'))
-    node_sid_label = attrs.NumericAttr('node_sid_label', label=_('Node-SID Label (IPv4)'))
-    node_sid_v6_index = attrs.NumericAttr('node_sid_v6_index', label=_('Node-SID Index (IPv6)'))
-    node_sid_v6_label = attrs.NumericAttr('node_sid_v6_label', label=_('Node-SID Label (IPv6)'))
+    srlb_start = attrs.NumericAttr('srlb_start', label=_('SRLB Start'))
+    srlb_range = attrs.NumericAttr('srlb_range', label=_('SRLB Range'))
     maximum_sid_depth = attrs.NumericAttr('maximum_sid_depth', label=_('Maximum SID Depth'))
     tunnel_table_pref = attrs.NumericAttr('tunnel_table_pref', label=_('Tunnel-Table Pref'))
 
@@ -82,6 +110,8 @@ class ISISInstanceSettingsPanel(panels.ObjectAttributesPanel):
     overload_bit = attrs.BooleanAttr('overload_bit', label=_('Overload Bit'))
     overload_on_startup = attrs.BooleanAttr('overload_on_startup', label=_('Overload on Startup'))
     overload_timeout = attrs.NumericAttr('overload_timeout', label=_('Overload Timeout'))
+    suppress_attached_bit = attrs.BooleanAttr('suppress_attached_bit', label=_('Suppress Attached Bit'))
+    ignore_attached_bit = attrs.BooleanAttr('ignore_attached_bit', label=_('Ignore Attached Bit'))
     spf_initial_wait = attrs.NumericAttr('spf_initial_wait', label=_('SPF Initial Wait'))
     spf_max_wait = attrs.NumericAttr('spf_max_wait', label=_('SPF Max Wait'))
     lsp_initial_wait = attrs.NumericAttr('lsp_initial_wait', label=_('LSP-gen Initial Wait'))

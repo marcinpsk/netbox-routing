@@ -22,6 +22,8 @@ from netbox_routing.models import (
     ISISInterfaceLevel,
     ISISSegmentRouting,
     ISISFlexAlgo,
+    ISISPrefixSID,
+    ISISSRv6Locator,
 )
 
 __all__ = (
@@ -32,6 +34,8 @@ __all__ = (
     'ISISInterfaceLevelForm',
     'ISISSegmentRoutingForm',
     'ISISFlexAlgoForm',
+    'ISISPrefixSIDForm',
+    'ISISSRv6LocatorForm',
 )
 
 
@@ -181,6 +185,8 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',
+            'suppress_attached_bit',
+            'ignore_attached_bit',
             'distance',
             'maximum_paths',
             'reference_bandwidth',
@@ -219,6 +225,8 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',
+            'suppress_attached_bit',
+            'ignore_attached_bit',
             'distance',
             'maximum_paths',
             'reference_bandwidth',
@@ -244,6 +252,8 @@ class ISISInstanceForm(ISISSettingMixin, PrimaryModelForm):
         widgets = {
             'overload_bit': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'overload_on_startup': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'suppress_attached_bit': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'ignore_attached_bit': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'te_enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
             'microloop_avoidance': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
         }
@@ -469,10 +479,9 @@ class ISISSegmentRoutingForm(PrimaryModelForm):
 
     fieldsets = (
         FieldSet('description'),
-        FieldSet('instance', 'enabled', name=_('Segment Routing')),
+        FieldSet('instance', 'enabled', 'srv6_enabled', name=_('Segment Routing')),
         FieldSet(
-            'prefix_sid_range', 'srgb_start', 'srgb_range', 'node_sid_index',
-            'node_sid_label', 'node_sid_v6_index', 'node_sid_v6_label',
+            'prefix_sid_range', 'srgb_start', 'srgb_range', 'srlb_start', 'srlb_range',
             'maximum_sid_depth', 'tunnel_table_pref', name=_('Attributes'),
         ),
     )
@@ -480,12 +489,14 @@ class ISISSegmentRoutingForm(PrimaryModelForm):
     class Meta:
         model = ISISSegmentRouting
         fields = (
-            'instance', 'enabled', 'prefix_sid_range', 'srgb_start', 'srgb_range',
-            'node_sid_index', 'node_sid_label', 'node_sid_v6_index', 'node_sid_v6_label',
-            'maximum_sid_depth', 'tunnel_table_pref',
+            'instance', 'enabled', 'srv6_enabled', 'prefix_sid_range', 'srgb_start', 'srgb_range',
+            'srlb_start', 'srlb_range', 'maximum_sid_depth', 'tunnel_table_pref',
             'description', 'comments', 'tags', 'owner',
         )
-        widgets = {'enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES)}
+        widgets = {
+            'enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'srv6_enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+        }
 
 
 class ISISFlexAlgoForm(PrimaryModelForm):
@@ -510,3 +521,65 @@ class ISISFlexAlgoForm(PrimaryModelForm):
             'admin_group_include_any', 'admin_group_include_all',
             'description', 'comments', 'tags', 'owner',
         )
+
+
+class ISISPrefixSIDForm(PrimaryModelForm):
+    interface = DynamicModelChoiceField(
+        queryset=ISISInterface.objects.all(), required=True, selector=True, label=_('Interface')
+    )
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('interface', 'algorithm', name=_('Prefix-SID')),
+        FieldSet(
+            'sid_index', 'sid_label', 'n_flag', 'no_php', 'explicit_null', 'readvertise',
+            name=_('Attributes'),
+        ),
+    )
+
+    class Meta:
+        model = ISISPrefixSID
+        fields = (
+            'interface', 'algorithm', 'sid_index', 'sid_label', 'n_flag', 'no_php',
+            'explicit_null', 'readvertise', 'description', 'comments', 'tags', 'owner',
+        )
+        widgets = {
+            'n_flag': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'no_php': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'explicit_null': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'readvertise': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+        }
+
+
+class ISISSRv6LocatorForm(PrimaryModelForm):
+    instance = DynamicModelChoiceField(
+        queryset=ISISInstance.objects.all(), required=True, selector=True, label=_('Instance')
+    )
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('instance', 'name', 'prefix', 'enabled', name=_('SRv6 Locator')),
+        FieldSet(
+            'algorithm', 'is_anycast', 'is_micro_segment', 'flavor', 'isis_level',
+            name=_('Behaviour'),
+        ),
+        FieldSet(
+            'block_length', 'node_length', 'function_length', 'argument_length',
+            name=_('SID structure'),
+        ),
+        FieldSet('vendor_ext', name=_('Vendor Extensions')),
+    )
+
+    class Meta:
+        model = ISISSRv6Locator
+        fields = (
+            'instance', 'name', 'prefix', 'enabled', 'algorithm', 'is_anycast',
+            'is_micro_segment', 'flavor', 'isis_level', 'block_length', 'node_length',
+            'function_length', 'argument_length', 'vendor_ext',
+            'description', 'comments', 'tags', 'owner',
+        )
+        widgets = {
+            'is_anycast': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'is_micro_segment': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+            'enabled': forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+        }

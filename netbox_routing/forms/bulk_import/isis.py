@@ -15,6 +15,8 @@ from netbox_routing.models import (
     ISISInterfaceLevel,
     ISISSegmentRouting,
     ISISFlexAlgo,
+    ISISPrefixSID,
+    ISISSRv6Locator,
 )
 
 __all__ = (
@@ -25,7 +27,39 @@ __all__ = (
     'ISISInterfaceLevelImportForm',
     'ISISSegmentRoutingImportForm',
     'ISISFlexAlgoImportForm',
+    'ISISPrefixSIDImportForm',
+    'ISISSRv6LocatorImportForm',
 )
+
+
+class ISISPrefixSIDImportForm(NetBoxModelImportForm):
+    interface = CSVModelChoiceField(
+        queryset=ISISInterface.objects.all(), required=True, help_text=_('Primary key of IS-IS Interface')
+    )
+
+    class Meta:
+        model = ISISPrefixSID
+        fields = (
+            'interface', 'algorithm', 'sid_index', 'sid_label', 'n_flag', 'no_php',
+            'explicit_null', 'readvertise', 'description', 'comments', 'tags',
+        )
+
+
+class ISISSRv6LocatorImportForm(NetBoxModelImportForm):
+    instance = CSVModelChoiceField(
+        queryset=ISISInstance.objects.all(), required=True, help_text=_('Primary key of IS-IS Instance')
+    )
+
+    class Meta:
+        model = ISISSRv6Locator
+        # vendor_ext (a null=False JSONField) is intentionally omitted: an empty CSV cell
+        # would clean to None and fail model validation on every row that omits it. It
+        # defaults to {} and is populated via the API / reconcilers, not bulk import.
+        fields = (
+            'instance', 'name', 'prefix', 'algorithm', 'is_anycast', 'is_micro_segment',
+            'flavor', 'block_length', 'node_length', 'function_length', 'argument_length',
+            'isis_level', 'enabled', 'description', 'comments', 'tags',
+        )
 
 
 class ISISFlexAlgoImportForm(NetBoxModelImportForm):
@@ -75,9 +109,8 @@ class ISISSegmentRoutingImportForm(NetBoxModelImportForm):
     class Meta:
         model = ISISSegmentRouting
         fields = (
-            'instance', 'enabled', 'prefix_sid_range', 'srgb_start', 'srgb_range',
-            'node_sid_index', 'node_sid_label', 'node_sid_v6_index', 'node_sid_v6_label',
-            'maximum_sid_depth', 'tunnel_table_pref',
+            'instance', 'enabled', 'srv6_enabled', 'prefix_sid_range', 'srgb_start', 'srgb_range',
+            'srlb_start', 'srlb_range', 'maximum_sid_depth', 'tunnel_table_pref',
             'description', 'comments', 'tags',
         )
 
@@ -108,6 +141,8 @@ class ISISInstanceImportForm(NetBoxModelImportForm):
             'overload_bit',
             'overload_on_startup',
             'overload_timeout',
+            'suppress_attached_bit',
+            'ignore_attached_bit',
             'distance',
             'maximum_paths',
             'reference_bandwidth',
