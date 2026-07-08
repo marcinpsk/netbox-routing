@@ -204,6 +204,29 @@ class RouteMapEntrySetCommunitySerializer(serializers.ModelSerializer):
             'communities',
         )
 
+    def validate(self, data):
+        data = super().validate(data)
+        # Every operation (add/set/delete) acts on communities, so a set-community
+        # action must reference a community list and/or carry inline communities.
+        # Without either it is a no-op that renders as a misleading empty "inline"
+        # action. (This lives in the serializer rather than model.clean() because
+        # `communities` is an M2M — unpopulated until after save — so a model-level
+        # clean cannot see it.)
+        community_list = data.get('community_list')
+        communities = data.get('communities')
+        if self.instance is not None:
+            # Partial update: fall back to the stored value for any field not supplied.
+            if 'community_list' not in data:
+                community_list = self.instance.community_list
+            if 'communities' not in data:
+                communities = list(self.instance.communities.all())
+        if not community_list and not communities:
+            raise serializers.ValidationError(
+                'A set-community action must reference a community list '
+                'and/or inline communities.'
+            )
+        return data
+
     def create(self, validated_data):
         communities = validated_data.pop('communities', None)
         instance = super().create(validated_data)

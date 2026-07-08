@@ -387,7 +387,9 @@ class RouteMapEntrySetCommunityAPITestCase(
             RouteMapEntrySetCommunity(
                 route_map_entry=entry, operation='set', community_list=clist
             ),
-            RouteMapEntrySetCommunity(route_map_entry=entry, operation='delete'),
+            RouteMapEntrySetCommunity(
+                route_map_entry=entry, operation='delete', community_list=clist
+            ),
         )
         RouteMapEntrySetCommunity.objects.bulk_create(objs)
         objs[0].communities.set(communities)
@@ -406,5 +408,22 @@ class RouteMapEntrySetCommunityAPITestCase(
             {
                 'route_map_entry': entry.pk,
                 'operation': 'delete',
+                'community_list': clist.pk,
             },
         ]
+
+    def test_create_without_target_is_rejected(self):
+        # Every operation acts on communities, so a set-community action with
+        # neither a community_list nor inline communities is rejected (400).
+        from django.urls import reverse
+
+        self.add_permissions('netbox_routing.add_routemapentrysetcommunity')
+        entry = RouteMapEntry.objects.first()
+        url = reverse('plugins-api:netbox_routing-api:routemapentrysetcommunity-list')
+        response = self.client.post(
+            url,
+            {'route_map_entry': entry.pk, 'operation': 'add'},
+            format='json',
+            **self.header,
+        )
+        self.assertHttpStatus(response, 400)
