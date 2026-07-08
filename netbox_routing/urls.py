@@ -11,6 +11,15 @@ urlpatterns = [
         'routes/static/', include(get_model_urls(app_name, 'staticroute', detail=False))
     ),
     path('routes/static/<int:pk>/', include(get_model_urls(app_name, 'staticroute'))),
+    # Redistribution
+    path(
+        'redistribution/',
+        include(get_model_urls(app_name, 'redistribution', detail=False)),
+    ),
+    path(
+        'redistribution/<int:pk>/',
+        include(get_model_urls(app_name, 'redistribution')),
+    ),
     # OSPF
     path(
         'ospf/instance/',

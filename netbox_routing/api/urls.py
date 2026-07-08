@@ -41,4 +41,5 @@ router.register('objects/as-path-entry', ASPathEntryViewSet)
 router.register('objects/community-list', CommunityListViewSet)
 router.register('objects/community-list-entry', CommunityListEntryViewSet)
 router.register('objects/community', CommunityViewSet)
+router.register('redistribution', RedistributionViewSet)
 urlpatterns = router.urls

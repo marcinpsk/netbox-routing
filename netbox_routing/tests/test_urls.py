@@ -399,6 +399,15 @@ class URLTestCase(TestCase):
                 'routemapentry_delete',
                 'routemapentry_changelog',
                 'routemapentry_journal',
+                'redistribution',
+                'redistribution_add',
+                'redistribution_changelog',
+                'redistribution_bulk_delete',
+                'redistribution_bulk_edit',
+                'redistribution_delete',
+                'redistribution_edit',
+                'redistribution_journal',
+                'redistribution_list',
             ]
         )
 

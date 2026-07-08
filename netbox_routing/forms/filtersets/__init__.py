@@ -1,4 +1,5 @@
 from .static import StaticRouteFilterForm
+from .redistribution import RedistributionFilterForm
 from .bgp import (
     BGPRouterFilterForm,
     BGPScopeFilterForm,
@@ -29,6 +30,8 @@ from .eigrp import *
 __all__ = (
     # Static
     'StaticRouteFilterForm',
+    # Redistribution
+    'RedistributionFilterForm',
     # BGP
     'BGPRouterFilterForm',
     'BGPScopeFilterForm',

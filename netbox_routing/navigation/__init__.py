@@ -6,6 +6,7 @@ from .ospf import MENUITEMS as OSPF_MENU
 from .isis import MENUITEMS as ISIS_MENU
 from .eigrp import eigrp
 from .static import MENUITEMS as STATIC_MENU
+from .redistribution import REDISTRIBUTION_MENU
 from .bgp import BGP_MENU
 from .community import COMMUNITY_MENU
 
@@ -17,6 +18,7 @@ menu = PluginMenu(
         ('Routing Objects', COMMUNITY_MENU + OBJECT_MENU),
         ('BFD', BFD_MENU),
         ('Static', STATIC_MENU),
+        ('Redistribution', REDISTRIBUTION_MENU),
         ('BGP', BGP_MENU),
         ('OSPF', OSPF_MENU),
         ('IS-IS', ISIS_MENU),

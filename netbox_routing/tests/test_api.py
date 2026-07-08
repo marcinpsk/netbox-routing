@@ -7,10 +7,12 @@ from netbox_routing.tests.eigrp.test_api import *
 from netbox_routing.tests.isis.test_api import *
 from netbox_routing.tests.ospf.test_api import *
 from netbox_routing.tests.static.test_api import *
+from netbox_routing.tests.redistribution.test_api import *
 
 __all__ = (
     'AppTest',
     'StaticRouteTestCase',
+    'RedistributionAPITestCase',
     'OSPFInstanceTestCase',
     'OSPFAreaTestCase',
     'OSPFInterfaceTestCase',

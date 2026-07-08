@@ -6,6 +6,7 @@ from .isis import *
 from .static import *
 from .objects import *
 from .ospf import *
+from .redistribution import *
 
 __all__ = (
     'SettingsChoicePanel',
@@ -30,6 +31,7 @@ __all__ = (
     'EIGRPInterfacePanel',
     'StaticRoutePanel',
     'StaticRouteRoutePanel',
+    'RedistributionPanel',
     'BFDProfilePanel',
     'BFDProfileSessionPanel',
     'CustomPrefixPanel',

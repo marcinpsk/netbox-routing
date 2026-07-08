@@ -1,5 +1,6 @@
 from .static import *
 from .objects import *
+from .redistribution import *
 from .community import *
 from .ospf import *
 from .isis import *
@@ -18,6 +19,13 @@ __all__ = (
     'StaticRouteBulkEditView',
     'StaticRouteDeleteView',
     'StaticRouteBulkDeleteView',
+    # Redistribution
+    'RedistributionListView',
+    'RedistributionView',
+    'RedistributionEditView',
+    'RedistributionDeleteView',
+    'RedistributionBulkEditView',
+    'RedistributionBulkDeleteView',
     # OSPF
     'OSPFInstanceListView',
     'OSPFInstanceView',
