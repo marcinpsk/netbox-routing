@@ -6,7 +6,8 @@ from django.test import TestCase
 
 from utilities.testing import create_test_device
 
-from netbox_routing.models import ISISInstance, Redistribution
+from netbox_routing.models import ISISInstance, OSPFInstance, Redistribution
+from netbox_routing.models.redistribution import MetricTypeChoices
 
 __all__ = ('RedistributionModelTestCase',)
 
@@ -28,6 +29,12 @@ class RedistributionModelTestCase(TestCase):
             net='49.0001.0000.0000.0001.00',
             is_type='level-1-2',
         )
+        cls.ospf = OSPFInstance.objects.create(
+            name='OSPF 1',
+            device=cls.device,
+            router_id='1.1.1.1',
+            process_id='1',
+        )
 
     def _redistribution(self, destination, **kwargs):
         return Redistribution(
@@ -46,3 +53,26 @@ class RedistributionModelTestCase(TestCase):
         with self.assertRaises(ValidationError) as ctx:
             self._redistribution(self.device).clean()
         self.assertIn('destination_type', ctx.exception.error_dict)
+
+    def test_clean_accepts_metric_type_matching_destination(self):
+        # Each protocol's own metric types are valid on its destination scope.
+        self._redistribution(
+            self.ospf, metric_type=MetricTypeChoices.OSPF_TYPE2
+        ).clean()  # should not raise
+        self._redistribution(
+            self.isis, metric_type=MetricTypeChoices.ISIS_EXTERNAL
+        ).clean()  # should not raise
+
+    def test_clean_rejects_metric_type_from_other_protocol(self):
+        # An OSPF metric type on an IS-IS destination (and vice versa) is rejected.
+        with self.assertRaises(ValidationError) as ctx:
+            self._redistribution(
+                self.isis, metric_type=MetricTypeChoices.OSPF_TYPE1
+            ).clean()
+        self.assertIn('metric_type', ctx.exception.error_dict)
+
+        with self.assertRaises(ValidationError) as ctx:
+            self._redistribution(
+                self.ospf, metric_type=MetricTypeChoices.ISIS_INTERNAL
+            ).clean()
+        self.assertIn('metric_type', ctx.exception.error_dict)

@@ -38,21 +38,28 @@ class MetricTypeChoices(models.TextChoices):
 
 
 # Metric types are protocol-specific; map each destination scope model to the
-# metric_type values it accepts. A destination not listed here (e.g. BGP) does
-# not support a metric_type at all.
+# metric_type values it accepts. Keyed by the full (app_label, model) content-type
+# identity — ContentType.model is only unique per app, so a same-named model from
+# another app must not be able to satisfy this mapping. A destination not listed
+# here (e.g. BGP) does not support a metric_type at all.
 METRIC_TYPES_BY_DESTINATION = {
-    'ospfinstance': frozenset(
+    ('netbox_routing', 'ospfinstance'): frozenset(
         (MetricTypeChoices.OSPF_TYPE1, MetricTypeChoices.OSPF_TYPE2)
     ),
-    'isisinstance': frozenset(
+    ('netbox_routing', 'isisinstance'): frozenset(
         (MetricTypeChoices.ISIS_INTERNAL, MetricTypeChoices.ISIS_EXTERNAL)
     ),
 }
 
 # Destination scope is a GFK, but only these protocol-scope models are valid
-# targets (BGP destinations carry no metric_type, hence absent above).
+# targets (BGP destinations carry no metric_type, hence absent above). Keyed by
+# full (app_label, model) so an unrelated app's like-named model can't slip through.
 ALLOWED_DESTINATION_MODELS = frozenset(
-    ('ospfinstance', 'isisinstance', 'bgpaddressfamily')
+    (
+        ('netbox_routing', 'ospfinstance'),
+        ('netbox_routing', 'isisinstance'),
+        ('netbox_routing', 'bgpaddressfamily'),
+    )
 )
 
 
@@ -151,13 +158,17 @@ class Redistribution(PrimaryModel):
         super().clean()
 
         model = None
-        model_name = None
+        destination_key = None
         if self.destination_type_id:
             model = self.destination_type.model_class()
-            model_name = model._meta.model_name if model is not None else None
+            # Full content-type identity: model name alone is not globally unique.
+            destination_key = (
+                self.destination_type.app_label,
+                self.destination_type.model,
+            )
 
             # Destination must be one of the supported protocol-scope models.
-            if model_name not in ALLOWED_DESTINATION_MODELS:
+            if destination_key not in ALLOWED_DESTINATION_MODELS:
                 label = (
                     model._meta.verbose_name
                     if model is not None
@@ -176,7 +187,7 @@ class Redistribution(PrimaryModel):
         # the selected destination scope so e.g. an IS-IS metric_type can't be
         # saved against an OSPF destination.
         if self.metric_type and self.destination_type_id:
-            allowed = METRIC_TYPES_BY_DESTINATION.get(model_name, frozenset())
+            allowed = METRIC_TYPES_BY_DESTINATION.get(destination_key, frozenset())
             if self.metric_type not in allowed:
                 destination_label = (
                     model._meta.verbose_name if model is not None else _('destination')
