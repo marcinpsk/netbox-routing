@@ -64,7 +64,7 @@ class ISISInstanceModelTestCase(TestCase):
     def test_fast_reroute_and_microloop_accepted(self):
         # Process-wide IP-FRR flavour (LFA / Remote-LFA / TI-LFA — IOS-XR
         # fast-reroute per-prefix [ti-lfa], Junos backup-spf-options, Nokia
-        # loopfree-alternate, Arrcus fast-reroute augment) and micro-loop
+        # loopfree-alternate) and micro-loop
         # avoidance, TI-LFA's usual companion knob.
         for flavour in ('lfa', 'remote-lfa', 'ti-lfa'):
             self._instance(fast_reroute=flavour).full_clean()
@@ -305,7 +305,7 @@ class ISISSettingModelTestCase(TestCase):
 
     def test_te_router_id_keys_accepted(self):
         # The IS-IS traffic-engineering router-ID knob (IOS/XR 'mpls traffic-eng
-        # router-id', Arrcus traffic-engineering augment; derived from the global
+        # router-id'; derived from the global
         # router-id on Junos/Nokia). Without vocabulary keys a reader-emitted
         # setting is silently filtered downstream and the value never lands.
         # full_clean exercises key choice membership; values are strings (an IP

@@ -86,7 +86,7 @@ class ISISFastRerouteChoices(ChoiceSet):
 
     IOS-XR 'fast-reroute per-prefix [remote-lfa|ti-lfa]', Junos
     backup-spf-options [use-post-convergence-lfa], Nokia loopfree-alternate
-    [remote-lfa|ti-lfa], Arrcus fast-reroute augment.
+    [remote-lfa|ti-lfa].
     """
 
     LFA = 'lfa'
@@ -145,8 +145,8 @@ class ISISSettingChoices(ChoiceSet):
     SPF_RAPID_RUNS = 'spf_rapid_runs'  # Junos: count of rapid runs
     LSP_SECOND_WAIT = 'lsp_second_wait'  # Cisco/Nokia/IOS-XR: ms
 
-    # Traffic-engineering router-ID (IOS/IOS-XR 'mpls traffic-eng router-id',
-    # Arrcus traffic-engineering augment; derived from the global router-id on
+    # Traffic-engineering router-ID (IOS/IOS-XR 'mpls traffic-eng router-id';
+    # derived from the global router-id on
     # Junos/Nokia, where it reads as absent). Value is an IP address or, on
     # Cisco platforms, an interface reference — a string either way.
     TE_IPV4_ROUTER_ID = 'te_ipv4_router_id'
