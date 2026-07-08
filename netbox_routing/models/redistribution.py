@@ -17,6 +17,10 @@ from django.utils.translation import gettext_lazy as _
 
 from netbox.models import PrimaryModel
 
+from netbox_routing.constants.redistribution import (
+    REDISTRIBUTION_DESTINATION_MODEL_KEYS,
+)
+
 __all__ = ('Redistribution',)
 
 
@@ -54,13 +58,10 @@ METRIC_TYPES_BY_DESTINATION = {
 # Destination scope is a GFK, but only these protocol-scope models are valid
 # targets (BGP destinations carry no metric_type, hence absent above). Keyed by
 # full (app_label, model) so an unrelated app's like-named model can't slip through.
-ALLOWED_DESTINATION_MODELS = frozenset(
-    (
-        ('netbox_routing', 'ospfinstance'),
-        ('netbox_routing', 'isisinstance'),
-        ('netbox_routing', 'bgpaddressfamily'),
-    )
-)
+# Derived from the single source of truth in constants/redistribution.py — the same
+# keys back the GFK's content-type choices, so the scope guard and the UI/API picker
+# can't drift.
+ALLOWED_DESTINATION_MODELS = frozenset(REDISTRIBUTION_DESTINATION_MODEL_KEYS)
 
 
 class Redistribution(PrimaryModel):

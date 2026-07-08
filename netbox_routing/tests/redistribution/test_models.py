@@ -76,3 +76,26 @@ class RedistributionModelTestCase(TestCase):
                 self.ospf, metric_type=MetricTypeChoices.ISIS_INTERNAL
             ).clean()
         self.assertIn('metric_type', ctx.exception.error_dict)
+
+    def test_allowed_destinations_single_sourced(self):
+        # The model-level scope guard and the GFK content-type choices must stay in
+        # lockstep; both derive from REDISTRIBUTION_DESTINATION_MODEL_KEYS, so they
+        # cannot silently drift. This proves the wiring.
+        from django.contrib.contenttypes.models import ContentType
+
+        from netbox_routing.constants.redistribution import (
+            REDISTRIBUTION_DESTINATION_MODEL_KEYS,
+            REDISTRIBUTION_DESTINATION_MODELS,
+        )
+        from netbox_routing.models.redistribution import ALLOWED_DESTINATION_MODELS
+
+        self.assertEqual(
+            ALLOWED_DESTINATION_MODELS,
+            frozenset(REDISTRIBUTION_DESTINATION_MODEL_KEYS),
+        )
+        # The GFK content-type Q must resolve to exactly the same set of models.
+        q_keys = frozenset(
+            (ct.app_label, ct.model)
+            for ct in ContentType.objects.filter(REDISTRIBUTION_DESTINATION_MODELS)
+        )
+        self.assertEqual(q_keys, ALLOWED_DESTINATION_MODELS)
