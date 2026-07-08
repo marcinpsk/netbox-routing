@@ -486,7 +486,14 @@ class RouteMapEntrySetCommunity(models.Model):
         on_delete=models.CASCADE,
         related_name='set_communities',
     )
-    operation = models.CharField(max_length=10, choices=CommunitySetActionChoices)
+    operation = models.CharField(
+        max_length=10,
+        choices=CommunitySetActionChoices,
+        help_text=_(
+            'How the referenced list and/or inline communities are applied to the '
+            'route (e.g. add, set/replace, or delete/remove).'
+        ),
+    )
     community_list = models.ForeignKey(
         to=CommunityList,
         on_delete=models.PROTECT,

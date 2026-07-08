@@ -79,6 +79,6 @@ class BFDProfileViewSet(NetBoxModelViewSet):
 
 
 class BFDInterfaceViewSet(NetBoxModelViewSet):
-    queryset = BFDInterface.objects.all()
+    queryset = BFDInterface.objects.select_related('interface__device', 'bfd_profile')
     serializer_class = BFDInterfaceSerializer
     filterset_class = filtersets.BFDInterfaceFilterSet
