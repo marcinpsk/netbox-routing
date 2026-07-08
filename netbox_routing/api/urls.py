@@ -1,6 +1,6 @@
 from netbox.api.routers import NetBoxRouter
 from .views import *
-from .views.objects import CustomPrefixViewSet
+from .views.objects import CustomPrefixViewSet, RouteMapEntrySetCommunityViewSet
 
 router = NetBoxRouter()
 router.register('routes/static', StaticRouteViewSet)
@@ -36,6 +36,7 @@ router.register('objects/prefix-list', PrefixListViewSet)
 router.register('objects/prefix-list-entry', PrefixListEntryViewSet)
 router.register('objects/route-map', RouteMapViewSet)
 router.register('objects/route-map-entry', RouteMapEntryViewSet)
+router.register('objects/route-map-set-community', RouteMapEntrySetCommunityViewSet)
 router.register('objects/as-path', ASPathViewSet)
 router.register('objects/as-path-entry', ASPathEntryViewSet)
 router.register('objects/community-list', CommunityListViewSet)

@@ -15,6 +15,7 @@ from django.core.exceptions import ValidationError
 from ipam.choices import IPAddressFamilyChoices
 from ipam.fields import IPNetworkField
 from netbox.models import PrimaryModel
+from utilities.querysets import RestrictedQuerySet
 
 from netbox_routing.models.community import *
 from netbox_routing.choices import (
@@ -506,6 +507,11 @@ class RouteMapEntrySetCommunity(models.Model):
         blank=True,
         related_name='set_by_route_map_entries',
     )
+
+    # Use a RestrictedQuerySet so the API viewset can enforce object-level
+    # permissions (BaseViewSet.initial calls queryset.restrict()). This is a
+    # manager-only change — it is not emitted to migrations.
+    objects = RestrictedQuerySet.as_manager()
 
     class Meta:
         ordering = ('route_map_entry', 'operation', 'pk')

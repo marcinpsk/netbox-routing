@@ -182,6 +182,12 @@ class RouteMapSerializer(NetBoxModelSerializer):
 
 
 class RouteMapEntrySetCommunitySerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:routemapentrysetcommunity-detail'
+    )
+    route_map_entry = serializers.PrimaryKeyRelatedField(
+        queryset=RouteMapEntry.objects.all()
+    )
     community_list = CommunityListSerializer(
         nested=True, required=False, allow_null=True
     )
@@ -189,7 +195,30 @@ class RouteMapEntrySetCommunitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RouteMapEntrySetCommunity
-        fields = ('id', 'operation', 'community_list', 'communities')
+        fields = (
+            'id',
+            'url',
+            'route_map_entry',
+            'operation',
+            'community_list',
+            'communities',
+        )
+
+    def create(self, validated_data):
+        communities = validated_data.pop('communities', None)
+        instance = super().create(validated_data)
+        return self._set_communities(instance, communities)
+
+    def update(self, instance, validated_data):
+        communities = validated_data.pop('communities', None)
+        instance = super().update(instance, validated_data)
+        return self._set_communities(instance, communities)
+
+    @staticmethod
+    def _set_communities(instance, communities):
+        if communities is not None:
+            instance.communities.set(communities)
+        return instance
 
 
 class RouteMapEntrySerializer(NetBoxModelSerializer):

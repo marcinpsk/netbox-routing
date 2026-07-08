@@ -1,6 +1,7 @@
 from ipam.models import Prefix
 from utilities.testing import APIViewTestCases
 
+from netbox_routing.models.community import Community, CommunityList
 from netbox_routing.models.objects import *
 
 __all__ = (
@@ -10,6 +11,7 @@ __all__ = (
     'PrefixListEntryTestCase',
     'RouteMapTestCase',
     'RouteMapEntryTestCase',
+    'RouteMapEntrySetCommunityAPITestCase',
 )
 
 
@@ -331,5 +333,78 @@ class RouteMapEntryTestCase(APIViewTestCases.APIViewTestCase):
                 'action': 'permit',
                 'sequence': 4,
                 'match': {'tags': 5},
+            },
+        ]
+
+
+class RouteMapEntrySetCommunityAPITestCase(
+    APIViewTestCases.GetObjectViewTestCase,
+    APIViewTestCases.ListObjectsViewTestCase,
+    APIViewTestCases.CreateObjectViewTestCase,
+    APIViewTestCases.UpdateObjectViewTestCase,
+    APIViewTestCases.DeleteObjectViewTestCase,
+):
+    """API coverage for the writable RouteMapEntrySetCommunity endpoint.
+
+    RouteMapEntrySetCommunity is a plain (non-NetBox) child model, so it is
+    composed from the individual API mixins rather than the full
+    ``APIViewTestCase`` (no GraphQL / changelog surface).
+    """
+
+    model = RouteMapEntrySetCommunity
+    view_namespace = "plugins-api:netbox_routing"
+    brief_fields = [
+        'communities',
+        'community_list',
+        'id',
+        'operation',
+        'route_map_entry',
+        'url',
+    ]
+    bulk_update_data = {'operation': 'delete'}
+    user_permissions = (
+        'netbox_routing.view_routemapentry',
+        'netbox_routing.view_communitylist',
+        'netbox_routing.view_community',
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        route_map = RouteMap.objects.create(name='RM 1')
+        entry = RouteMapEntry.objects.create(
+            route_map=route_map, action='permit', sequence=1
+        )
+        clist = CommunityList.objects.create(name='CL 1')
+        communities = (
+            Community.objects.create(community='65000:1', status='active'),
+            Community.objects.create(community='65000:2', status='active'),
+        )
+
+        objs = (
+            RouteMapEntrySetCommunity(
+                route_map_entry=entry, operation='add', community_list=clist
+            ),
+            RouteMapEntrySetCommunity(
+                route_map_entry=entry, operation='set', community_list=clist
+            ),
+            RouteMapEntrySetCommunity(route_map_entry=entry, operation='delete'),
+        )
+        RouteMapEntrySetCommunity.objects.bulk_create(objs)
+        objs[0].communities.set(communities)
+
+        cls.create_data = [
+            {
+                'route_map_entry': entry.pk,
+                'operation': 'add',
+                'community_list': clist.pk,
+            },
+            {
+                'route_map_entry': entry.pk,
+                'operation': 'set',
+                'communities': [communities[0].pk, communities[1].pk],
+            },
+            {
+                'route_map_entry': entry.pk,
+                'operation': 'delete',
             },
         ]

@@ -4,9 +4,10 @@ from django.db.models import Q
 from django.utils.translation import gettext as _
 
 from ipam.models import Prefix
-from netbox.filtersets import NetBoxModelFilterSet
+from netbox.filtersets import BaseFilterSet, NetBoxModelFilterSet
 from utilities.filtersets import register_filterset
 
+from netbox_routing.choices import CommunitySetActionChoices
 from netbox_routing.models.objects import *
 from netbox_routing.models.community import *
 
@@ -16,9 +17,33 @@ __all__ = (
     'PrefixListEntryFilterSet',
     'RouteMapFilterSet',
     'RouteMapEntryFilterSet',
+    'RouteMapEntrySetCommunityFilterSet',
     'ASPathFilterSet',
     'ASPathEntryFilterSet',
 )
+
+
+# RouteMapEntrySetCommunity is a plain (non-NetBox) model, so it uses BaseFilterSet
+# rather than NetBoxModelFilterSet (which injects a tag filter it cannot support).
+class RouteMapEntrySetCommunityFilterSet(BaseFilterSet):
+    route_map_entry_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='route_map_entry',
+        queryset=RouteMapEntry.objects.all(),
+        label=_('Route Map Entry (ID)'),
+    )
+    community_list_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='community_list',
+        queryset=CommunityList.objects.all(),
+        label=_('Community List (ID)'),
+    )
+    operation = django_filters.MultipleChoiceFilter(
+        choices=CommunitySetActionChoices,
+        label=_('Operation'),
+    )
+
+    class Meta:
+        model = RouteMapEntrySetCommunity
+        fields = ('id', 'route_map_entry_id', 'community_list_id', 'operation')
 
 
 class ASPathFilterSet(NetBoxModelFilterSet):
