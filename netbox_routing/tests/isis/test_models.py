@@ -391,6 +391,23 @@ class ISISPrefixSIDModelTestCase(TestCase):
             interface=self.isis_interface, algorithm=128, sid_label=16010
         ).clean()
 
+    def test_clean_rejects_out_of_range_algorithm(self):
+        # clean() must reject the 1-127 gap (and >255) with a ValidationError
+        # (HTTP 400) rather than deferring to the DB CheckConstraint, which would
+        # surface as an IntegrityError (HTTP 500).
+        for bad in (1, 127, 256):
+            with self.subTest(algorithm=bad), self.assertRaises(ValidationError) as ctx:
+                ISISPrefixSID(
+                    interface=self.isis_interface, algorithm=bad, sid_index=1
+                ).clean()
+            self.assertIn('algorithm', ctx.exception.error_dict)
+
+    def test_clean_accepts_valid_algorithm(self):
+        for algo in (0, 128, 255):
+            ISISPrefixSID(
+                interface=self.isis_interface, algorithm=algo, sid_index=1
+            ).clean()  # should not raise
+
     def test_db_constraint_rejects_out_of_range_algorithm(self):
         for bad in (1, 127, 256):
             with (

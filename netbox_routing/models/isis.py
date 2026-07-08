@@ -1072,6 +1072,22 @@ class ISISPrefixSID(PrimaryModel):
 
     def clean(self):
         super().clean()
+        # algorithm is 0 (SPF) or a Flex-Algo in 128-255; the 1-127 gap (and any
+        # value above 255) is invalid. Validate here so a bad value raises a
+        # ValidationError (HTTP 400) instead of tripping the CheckConstraint at
+        # save() as an IntegrityError (HTTP 500). Mirrors ISISFlexAlgo.algo_id.
+        if (
+            self.algorithm is not None
+            and self.algorithm != 0
+            and not (128 <= self.algorithm <= 255)
+        ):
+            raise ValidationError(
+                {
+                    'algorithm': _(
+                        'Algorithm must be 0 (SPF) or a Flex-Algo value in 128-255.'
+                    )
+                }
+            )
         # A prefix-SID is expressed as an SRGB index OR an absolute label, never both.
         if self.sid_index is not None and self.sid_label is not None:
             msg = _(

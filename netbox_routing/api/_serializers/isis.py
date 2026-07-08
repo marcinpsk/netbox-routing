@@ -56,6 +56,7 @@ class ISISFlexAlgoSerializer(NetBoxModelSerializer):
             'admin_group_include_all',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'instance', 'algo_id', 'metric_type')
@@ -146,6 +147,7 @@ class ISISLevelSerializer(NetBoxModelSerializer):
             'auth_key',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'level', 'default_metric')
@@ -171,6 +173,7 @@ class ISISInterfaceLevelSerializer(NetBoxModelSerializer):
             'passive',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'level', 'metric')
@@ -199,6 +202,7 @@ class ISISSegmentRoutingSerializer(NetBoxModelSerializer):
             'tunnel_table_pref',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = ('url', 'id', 'display', 'enabled', 'prefix_sid_range')
@@ -229,6 +233,7 @@ class ISISSettingSerializer(NetBoxModelSerializer):
             'value',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = (
@@ -283,6 +288,7 @@ class ISISInstanceSerializer(NetBoxModelSerializer):
             'reference_bandwidth',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = (
@@ -328,6 +334,7 @@ class ISISInterfaceSerializer(NetBoxModelSerializer):
             'mesh_group',
             'description',
             'comments',
+            'tags',
             'custom_fields',
         )
         brief_fields = (

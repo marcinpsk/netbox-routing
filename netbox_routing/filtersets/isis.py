@@ -2,6 +2,7 @@
 
 import django_filters
 import netaddr
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
@@ -19,6 +20,7 @@ from netbox_routing.choices import (
     ISISNetworkTypeChoices,
     ISISSettingChoices,
 )
+from netbox_routing.constants.isis import ISISSETTING_ASSIGNMENT_MODELS
 from netbox_routing.models import (
     ISISInstance,
     ISISInterface,
@@ -92,7 +94,10 @@ class ISISSRv6LocatorFilterSet(NetBoxModelFilterSet):
         fields = ('instance_id', 'name', 'prefix', 'algorithm', 'enabled')
 
     def search(self, queryset, name, value):
-        return queryset
+        value = (value or '').strip()
+        if not value:
+            return queryset
+        return queryset.filter(name__icontains=value).distinct()
 
     def filter_prefix(self, queryset, name, value):
         if not value.strip():
@@ -109,10 +114,19 @@ class ISISSettingFilterSet(NetBoxModelFilterSet):
     key = django_filters.MultipleChoiceFilter(
         choices=ISISSettingChoices, null_value=None, label=_('Setting Name')
     )
+    assigned_object_type = django_filters.ModelChoiceFilter(
+        queryset=ContentType.objects.filter(ISISSETTING_ASSIGNMENT_MODELS),
+        field_name='assigned_object_type',
+        label=_('Assigned Object Type'),
+    )
+    assigned_object_id = MultiValueCharFilter(
+        field_name='assigned_object_id',
+        label=_('Assigned Object (ID)'),
+    )
 
     class Meta:
         model = ISISSetting
-        fields = ('key',)
+        fields = ('key', 'assigned_object_type', 'assigned_object_id')
 
     def search(self, queryset, name, value):
         value = (value or '').strip()

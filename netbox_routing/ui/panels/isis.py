@@ -113,7 +113,7 @@ class ISISSegmentRoutingPanel(panels.ObjectAttributesPanel):
 
 
 class ISISInstancePanel(panels.ObjectAttributesPanel):
-    device = attrs.RelatedObjectAttr('device', label=_('Device'))
+    device = attrs.RelatedObjectAttr('device', linkify=True, label=_('Device'))
     vrf = attrs.RelatedObjectAttr('vrf', linkify=True)
     process_tag = attrs.TextAttr('process_tag', label=_('Process Tag'))
     net = attrs.TextAttr('net', label=_('NET'))
@@ -166,9 +166,9 @@ class ISISInstanceSettingsPanel(panels.ObjectAttributesPanel):
 
 
 class ISISInterfacePanel(panels.ObjectAttributesPanel):
-    device = attrs.RelatedObjectAttr('instance.device', label=_('Device'))
-    instance = attrs.RelatedObjectAttr('instance', label=_('Instance'))
-    interface = attrs.RelatedObjectAttr('interface', label=_('Interface'))
+    device = attrs.RelatedObjectAttr('instance.device', linkify=True, label=_('Device'))
+    instance = attrs.RelatedObjectAttr('instance', linkify=True, label=_('Instance'))
+    interface = attrs.RelatedObjectAttr('interface', linkify=True, label=_('Interface'))
     address_family = attrs.ChoiceAttr('address_family', label=_('Address Family'))
 
 
@@ -195,4 +195,4 @@ class ISISSettingPanel(panels.ObjectAttributesPanel):
     assigned_object_type = ContentTypeAttribute('assigned_object_type', label=_('Type'))
     assigned_object = attrs.RelatedObjectAttr('assigned_object', linkify=True)
     name = attrs.TextAttr('key', label=_('Name'))
-    value = attrs.TextAttr('value')
+    value = attrs.TextAttr('value', label=_('Value'))
