@@ -207,7 +207,16 @@ class Migration(migrations.Migration):
                     models.UniqueConstraint(
                         fields=('instance', 'name'),
                         name='netbox_routing_isissrv6locator_instance_name_unique',
-                    )
+                    ),
+                    models.CheckConstraint(
+                        condition=models.Q(
+                            ('algorithm', 0),
+                            models.Q(('algorithm__gte', 128), ('algorithm__lte', 255)),
+                            ('algorithm__isnull', True),
+                            _connector='OR',
+                        ),
+                        name='netbox_routing_isissrv6locator_algorithm_range',
+                    ),
                 ],
             },
             bases=(netbox.models.deletion.DeleteMixin, models.Model),
