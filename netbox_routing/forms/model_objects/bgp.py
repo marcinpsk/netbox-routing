@@ -685,6 +685,18 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Local AS'),
     )
+    source = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Source Address'),
+    )
+    update_source = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Update Source'),
+    )
 
     fieldsets = (
         FieldSet(
@@ -693,6 +705,7 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
+        FieldSet('source', 'update_source', name=_('Session Source')),
         FieldSet(
             'enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')
         ),
@@ -705,6 +718,8 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'name',
             'scope',
             'peer',
+            'source',
+            'update_source',
             'remote_as',
             'local_as',
             'tenant',
