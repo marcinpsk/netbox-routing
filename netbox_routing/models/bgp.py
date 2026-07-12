@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from netbox.models import PrimaryModel
 from netbox_routing.choices.bgp import *
 from netbox_routing.constants.bgp import *
+from netbox_routing.fields.ip import IPAddressField
 from netbox_routing.models.base import SearchAttributeMixin
 
 __all__ = (
@@ -301,6 +302,9 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='router',
     )
+    router_id = IPAddressField(
+        verbose_name=_('Router ID'), blank=True, null=True
+    )
     settings = GenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing.BGPSetting',
@@ -340,6 +344,7 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         'location',
         'device',
         'asn',
+        'router_id',
         'policy_templates',
         'session_templates',
         'peer_templates',

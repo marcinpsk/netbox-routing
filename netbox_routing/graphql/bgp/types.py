@@ -168,6 +168,7 @@ class BGPRouterType(BGPSettingsMixin, PrimaryObjectType):
         ],
     ]
     asn: Annotated["ASNType", strawberry.lazy('ipam.graphql.types')]
+    router_id: str | None
     peer_templates: (
         list[
             Annotated[

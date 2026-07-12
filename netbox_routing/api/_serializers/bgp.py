@@ -183,6 +183,7 @@ class BGPRouterSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'asn',
+            'router_id',
             'assigned_object',
             'assigned_object_type',
             'assigned_object_id',
