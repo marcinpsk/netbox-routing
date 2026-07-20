@@ -1,7 +1,7 @@
 import django_tables2 as tables
 from django.utils.translation import gettext_lazy as _
 
-from netbox.tables import NetBoxTable
+from netbox.tables import NetBoxTable, columns
 from netbox_routing.models.community import *
 
 __all__ = (
@@ -16,6 +16,10 @@ from tenancy.tables import TenancyColumnsMixin
 class CommunityTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(verbose_name=_('Name'), linkify=True)
     community = tables.Column(verbose_name=_('Community'), linkify=True)
+    # Derived from the community text (no stored column); see Community.kind.
+    kind = columns.ChoiceFieldColumn(
+        verbose_name=_('Kind'), accessor='kind', orderable=False
+    )
     role = tables.Column(verbose_name=_('Role'), linkify=True)
 
     class Meta(NetBoxTable.Meta):
@@ -25,6 +29,7 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
             'id',
             'name',
             'community',
+            'kind',
             'role',
             'status',
             'description',
@@ -36,6 +41,7 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
             'id',
             'name',
             'community',
+            'kind',
             'status',
             'description',
         )
@@ -43,6 +49,7 @@ class CommunityTable(TenancyColumnsMixin, NetBoxTable):
 
 class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
     name = tables.Column(verbose_name=_('Name'), linkify=True)
+    invert_match = columns.BooleanColumn(verbose_name=_('Invert match'))
 
     class Meta(NetBoxTable.Meta):
         model = CommunityList
@@ -50,6 +57,7 @@ class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
             'pk',
             'id',
             'name',
+            'invert_match',
             'description',
             'tenant_group',
             'tenant',
@@ -58,6 +66,7 @@ class CommunityListTable(TenancyColumnsMixin, NetBoxTable):
             'pk',
             'id',
             'name',
+            'invert_match',
             'description',
         )
 

@@ -1,4 +1,5 @@
-from utilities.testing import APIViewTestCases
+from dcim.models import Interface
+from utilities.testing import APIViewTestCases, create_test_device
 
 from netbox_routing.models.bgp import *
 from netbox_routing.tests.base import *
@@ -299,16 +300,15 @@ class BFDProfileTestCase(
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        profiles = []
-        for i in range(1, 4):
-            profiles.append(
-                BFDProfile(
-                    name=f'Test BFD Profile {i}',
-                    min_rx_int=60,
-                    min_tx_int=60,
-                    multiplier=3,
-                )
+        profiles = [
+            BFDProfile(
+                name=f'Test BFD Profile {i}',
+                min_rx_int=60,
+                min_tx_int=60,
+                multiplier=3,
             )
+            for i in range(1, 4)
+        ]
         BFDProfile.objects.bulk_create(profiles)
 
         cls.create_data = [
@@ -319,4 +319,61 @@ class BFDProfileTestCase(
                 'multiplier': 3,
             }
             for i in range(4, 6)
+        ]
+
+
+class BFDInterfaceTestCase(
+    APIViewTestCases.APIViewTestCase,
+):
+    model = BFDInterface
+    view_namespace = "plugins-api:netbox_routing"
+    graphql_base_name = 'bfd_interface'
+    brief_fields = [
+        'display',
+        'id',
+        'interface',
+        'url',
+    ]
+
+    bulk_update_data = {'enabled': False}
+
+    user_permissions = (
+        'dcim.view_device',
+        'dcim.view_interface',
+        'netbox_routing.view_bfdprofile',
+    )
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        device = create_test_device(name='Test BFD Device')
+        interfaces = [
+            Interface(device=device, name=f'Interface {i}', type='virtual')
+            for i in range(1, 6)
+        ]
+        Interface.objects.bulk_create(interfaces)
+
+        profile = BFDProfile.objects.create(
+            name='Shared BFD Profile', min_rx_int=300, min_tx_int=300, multiplier=3
+        )
+
+        data = (
+            cls.model(interface=interfaces[0], bfd_profile=profile, micro_bfd=False),
+            cls.model(interface=interfaces[1], bfd_profile=profile, micro_bfd=True),
+            cls.model(interface=interfaces[2], micro_bfd=False, enabled=True),
+        )
+        cls.model.objects.bulk_create(data)
+
+        cls.create_data = [
+            {
+                'interface': interfaces[3].pk,
+                'bfd_profile': profile.pk,
+                'micro_bfd': True,
+                'enabled': True,
+            },
+            {
+                'interface': interfaces[4].pk,
+                'micro_bfd': False,
+                'enabled': True,
+            },
         ]

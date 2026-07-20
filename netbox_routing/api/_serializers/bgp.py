@@ -1,7 +1,7 @@
 from django.contrib.contenttypes.models import ContentType
-from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from dcim.api.serializers_.device_components import InterfaceSerializer
 from ipam.api.serializers_.asns import ASNSerializer
 from ipam.api.serializers_.ip import IPAddressSerializer
 from ipam.api.serializers_.vrfs import VRFSerializer
@@ -9,7 +9,6 @@ from netbox.api.fields import ContentTypeField
 from netbox.api.gfk_fields import GFKSerializerField
 from netbox.api.serializers import NetBoxModelSerializer
 from tenancy.api.serializers_.tenants import TenantSerializer
-from utilities.api import get_serializer_for_model
 
 from netbox_routing.constants.bgp import *
 from netbox_routing.models.bgp import *
@@ -25,6 +24,7 @@ __all__ = (
     'BGPSessionTemplateSerializer',
     'BGPPeerAddressFamilySerializer',
     'BFDProfileSerializer',
+    'BFDInterfaceSerializer',
 )
 
 
@@ -57,14 +57,6 @@ class BGPSettingSerializer(NetBoxModelSerializer):
             'assigned_object',
             'key',
         )
-
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {'request': self.context['request']}
-        return serializer(obj.assigned_object, context=context, nested=True).data
 
 
 class BGPSessionTemplateSerializer(NetBoxModelSerializer):
@@ -191,6 +183,7 @@ class BGPRouterSerializer(NetBoxModelSerializer):
             'display',
             'name',
             'asn',
+            'router_id',
             'assigned_object',
             'assigned_object_type',
             'assigned_object_id',
@@ -203,14 +196,6 @@ class BGPRouterSerializer(NetBoxModelSerializer):
             'comments',
         )
         brief_fields = ('url', 'id', 'display', 'asn', 'assigned_object', 'name')
-
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {'request': self.context['request']}
-        return serializer(obj.assigned_object, context=context, nested=True).data
 
 
 class BGPScopeSerializer(NetBoxModelSerializer):
@@ -282,6 +267,7 @@ class BGPPeerSerializer(NetBoxModelSerializer):
     scope = BGPScopeSerializer(nested=True)
     peer = IPAddressSerializer(nested=True)
     source = IPAddressSerializer(nested=True, required=False)
+    update_source = InterfaceSerializer(nested=True, required=False)
     remote_as = ASNSerializer(nested=True, required=False)
     local_as = ASNSerializer(nested=True, required=False)
     tenant = TenantSerializer(nested=True, required=False)
@@ -295,12 +281,14 @@ class BGPPeerSerializer(NetBoxModelSerializer):
             'scope',
             'peer',
             'source',
+            'update_source',
             'name',
             'remote_as',
             'local_as',
             'status',
             'enabled',
             'bfd',
+            'bfd_enabled',
             'ttl',
             'password',
             'tenant',
@@ -360,14 +348,6 @@ class BGPPeerAddressFamilySerializer(NetBoxModelSerializer):
             'enabled',
         )
 
-    @extend_schema_field(serializers.JSONField(allow_null=True))
-    def get_assigned_object(self, obj):
-        if obj.assigned_object is None:
-            return None
-        serializer = get_serializer_for_model(obj.assigned_object)
-        context = {'request': self.context['request']}
-        return serializer(obj.assigned_object, context=context, nested=True).data
-
 
 class BFDProfileSerializer(NetBoxModelSerializer):
     url = serializers.HyperlinkedIdentityField(
@@ -395,4 +375,33 @@ class BFDProfileSerializer(NetBoxModelSerializer):
             'id',
             'display',
             'name',
+        )
+
+
+class BFDInterfaceSerializer(NetBoxModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        view_name='plugins-api:netbox_routing-api:bfdinterface-detail'
+    )
+    interface = InterfaceSerializer(nested=True)
+    bfd_profile = BFDProfileSerializer(nested=True, required=False, allow_null=True)
+
+    class Meta:
+        model = BFDInterface
+        fields = (
+            'url',
+            'id',
+            'display',
+            'interface',
+            'bfd_profile',
+            'micro_bfd',
+            'enabled',
+            'description',
+            'comments',
+            'custom_fields',
+        )
+        brief_fields = (
+            'url',
+            'id',
+            'display',
+            'interface',
         )

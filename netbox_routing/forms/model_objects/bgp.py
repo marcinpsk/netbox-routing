@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.forms import fields
 from django.utils.translation import gettext as _
 
-from dcim.models import Device, Region, SiteGroup, Site, Location
+from dcim.models import Device, Interface, Region, SiteGroup, Site, Location
 from ipam.models import ASN, VRF, IPAddress
 from netbox.forms import PrimaryModelForm
 from tenancy.forms import TenancyForm
@@ -30,6 +30,7 @@ __all__ = (
     'BGPPolicyTemplateForm',
     'BGPSessionTemplateForm',
     'BFDProfileForm',
+    'BFDInterfaceForm',
 )
 
 
@@ -684,6 +685,18 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Local AS'),
     )
+    source = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Source Address'),
+    )
+    update_source = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Update Source'),
+    )
 
     fieldsets = (
         FieldSet(
@@ -692,7 +705,10 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
-        FieldSet('enabled', 'bfd', 'password', 'ttl', name=_('Peer Settings')),
+        FieldSet('source', 'update_source', name=_('Session Source')),
+        FieldSet(
+            'enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')
+        ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -702,6 +718,8 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'name',
             'scope',
             'peer',
+            'source',
+            'update_source',
             'remote_as',
             'local_as',
             'tenant',
@@ -709,6 +727,7 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'status',
             'ttl',
             'bfd',
+            'bfd_enabled',
             'password',
             'tenant_group',
             'tenant',
@@ -873,6 +892,47 @@ class BFDProfileForm(TenancyForm, PrimaryModelForm):
             'comments',
             'tenant_group',
             'tenant',
+            'tags',
+            'owner',
+        ]
+
+
+class BFDInterfaceForm(PrimaryModelForm):
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    interface = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Interface'),
+        query_params={'device_id': '$device'},
+    )
+    bfd_profile = DynamicModelChoiceField(
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        label=_('BFD Profile'),
+    )
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('device', 'interface', name=_('Interface')),
+        FieldSet('bfd_profile', 'micro_bfd', 'enabled', name=_('BFD')),
+    )
+
+    class Meta:
+        model = BFDInterface
+        fields = [
+            'device',
+            'interface',
+            'bfd_profile',
+            'micro_bfd',
+            'enabled',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]

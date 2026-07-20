@@ -40,21 +40,21 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 name='Instance 1',
                 device=device,
                 router_id='1.1.1.1',
-                process_id=1,
+                process_id='1',
                 vrf=None,
             ),
             cls.model(
                 name='Instance 2',
                 device=device,
                 router_id='2.2.2.2',
-                process_id=2,
+                process_id='2',
                 vrf=vrf,
             ),
             cls.model(
                 name='Instance 3',
                 device=device,
                 router_id='3.3.3.3',
-                process_id=3,
+                process_id='3',
                 vrf=None,
             ),
         )
@@ -65,7 +65,7 @@ class OSPFInstanceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase
                 'name': 'Instance X',
                 'device': device.pk,
                 'router_id': '4.4.4.4',
-                'process_id': 4,
+                'process_id': '4',
                 'vrf': vrf.pk,
             },
         ]
@@ -129,7 +129,7 @@ class OSPFInterfaceTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCas
 
         device = create_test_device(name='Test Device')
         instance = OSPFInstance.objects.create(
-            name='Instance 1', device=device, router_id='1.1.1.1', process_id=1
+            name='Instance 1', device=device, router_id='1.1.1.1', process_id='1'
         )
         area = OSPFArea.objects.create(area_id='0')
 

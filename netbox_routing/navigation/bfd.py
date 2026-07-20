@@ -20,4 +20,17 @@ BFD_MENU = (
             ),
         ),
     ),
+    PluginMenuItem(
+        link='plugins:netbox_routing:bfdinterface_list',
+        link_text='BFD Interface',
+        permissions=['netbox_routing.view_bfdinterface'],
+        buttons=(
+            PluginMenuButton(
+                link='plugins:netbox_routing:bfdinterface_add',
+                title='Add',
+                icon_class=COL_ADD,
+                permissions=['netbox_routing.add_bfdinterface'],
+            ),
+        ),
+    ),
 )

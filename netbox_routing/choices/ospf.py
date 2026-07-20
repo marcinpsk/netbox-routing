@@ -1,6 +1,20 @@
 from utilities.choices import ChoiceSet
 
 
+class OSPFNetworkTypeChoices(ChoiceSet):
+    BROADCAST = 'broadcast'
+    NON_BROADCAST = 'non-broadcast'
+    POINT_TO_POINT = 'point-to-point'
+    POINT_TO_MULTIPOINT = 'point-to-multipoint'
+
+    CHOICES = [
+        (BROADCAST, 'Broadcast'),
+        (NON_BROADCAST, 'Non-Broadcast'),
+        (POINT_TO_POINT, 'Point-to-Point'),
+        (POINT_TO_MULTIPOINT, 'Point-to-Multipoint'),
+    ]
+
+
 class OSPFAreaTypeChoices(ChoiceSet):
     STANDARD = 'standard'
     BACKBONE = 'backbone'

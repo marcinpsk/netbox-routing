@@ -21,6 +21,7 @@ __all__ = (
     'BGPSessionTemplateFilterSet',
     'BGPPeerAddressFamilyFilterSet',
     'BFDProfileFilterSet',
+    'BFDInterfaceFilterSet',
 )
 
 
@@ -314,3 +315,25 @@ class BFDProfileFilterSet(NetBoxModelFilterSet):
             return queryset
         qs_filter = Q(name__icontains=value)
         return queryset.filter(qs_filter).distinct()
+
+
+class BFDInterfaceFilterSet(NetBoxModelFilterSet):
+    device_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='interface__device',
+        queryset=Device.objects.all(),
+        label=_('Device (ID)'),
+    )
+    bfd_profile_id = django_filters.ModelMultipleChoiceFilter(
+        field_name='bfd_profile',
+        queryset=BFDProfile.objects.all(),
+        label=_('BFD Profile (ID)'),
+    )
+
+    class Meta:
+        model = BFDInterface
+        fields = ('id', 'interface', 'bfd_profile', 'micro_bfd', 'enabled')
+
+    def search(self, queryset, name, value):
+        if not value.strip():
+            return queryset
+        return queryset.filter(interface__name__icontains=value).distinct()

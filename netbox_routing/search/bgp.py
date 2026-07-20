@@ -104,6 +104,7 @@ class BGPPeerIndex(SearchIndex):
         ('peer', 200),
         ('remote_as', 210),
         ('source', 300),
+        ('update_source', 305),
         ('local_as', 310),
         ('description', 4000),
         ('comments', 5000),

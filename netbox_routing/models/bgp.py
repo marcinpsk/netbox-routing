@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from netbox.models import PrimaryModel
 from netbox_routing.choices.bgp import *
 from netbox_routing.constants.bgp import *
+from netbox_routing.fields.ip import IPAddressField
 from netbox_routing.models.base import SearchAttributeMixin
 
 __all__ = (
@@ -22,6 +23,7 @@ __all__ = (
     'BGPPeer',
     'BGPPeerAddressFamily',
     'BFDProfile',
+    'BFDInterface',
 )
 
 
@@ -300,6 +302,9 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='router',
     )
+    router_id = IPAddressField(
+        verbose_name=_('Router ID'), blank=True, null=True
+    )
     settings = GenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing.BGPSetting',
@@ -339,6 +344,7 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         'location',
         'device',
         'asn',
+        'router_id',
         'policy_templates',
         'session_templates',
         'peer_templates',
@@ -537,6 +543,18 @@ class BGPPeer(PrimaryModel):
         blank=True,
         null=True,
     )
+    update_source = models.ForeignKey(
+        verbose_name=_('Update Source'),
+        to='dcim.Interface',
+        on_delete=models.PROTECT,
+        related_name='bgp_update_source_peers',
+        blank=True,
+        null=True,
+        help_text=_(
+            'Source interface for the session (IOS / IOS-XR update-source). '
+            'Junos / Nokia express this as an IP via Source Address instead.'
+        ),
+    )
     peer_group = models.ForeignKey(
         verbose_name=_('Peer Group'),
         to='netbox_routing.BGPPeerTemplate',
@@ -584,6 +602,14 @@ class BGPPeer(PrimaryModel):
         related_name='bgp_peers',
         blank=True,
         null=True,
+    )
+    bfd_enabled = models.BooleanField(
+        verbose_name=_('BFD enabled'),
+        blank=True,
+        null=True,
+        help_text=_(
+            'BFD fall-over enabled for this peer (timers come from the bound interface).'
+        ),
     )
     ttl = models.PositiveSmallIntegerField(
         verbose_name=_('TTL'),
@@ -817,3 +843,48 @@ class BFDProfile(PrimaryModel):
 
     def __str__(self):
         return f'{self.name}'
+
+
+class BFDInterface(PrimaryModel):
+    """BFD configured on an interface.
+
+    BFD sessions are an interface property; routing protocols (BGP/OSPF/IS-IS)
+    just enable BFD and inherit the interface's timers. This records which
+    interfaces run BFD, with which (usually network-wide shared) BFDProfile, and
+    whether it is micro-BFD (RFC 7130, per-LAG-member) or a normal session.
+    """
+
+    interface = models.OneToOneField(
+        verbose_name=_('Interface'),
+        to='dcim.Interface',
+        on_delete=models.CASCADE,
+        related_name='bfd_interface',
+    )
+    bfd_profile = models.ForeignKey(
+        verbose_name=_('BFD Profile'),
+        to='netbox_routing.BFDProfile',
+        on_delete=models.PROTECT,
+        related_name='interfaces',
+        blank=True,
+        null=True,
+    )
+    micro_bfd = models.BooleanField(
+        verbose_name=_('Micro-BFD'),
+        default=False,
+        help_text=_('Per-member BFD on a LAG (RFC 7130); false for a normal session.'),
+    )
+    enabled = models.BooleanField(verbose_name=_('Enabled'), default=True)
+
+    clone_fields = ('bfd_profile', 'micro_bfd', 'enabled')
+    prerequisite_models = ('dcim.Interface',)
+
+    class Meta:
+        verbose_name = 'BFD Interface'
+        verbose_name_plural = 'BFD Interfaces'
+        ordering = ('interface',)
+
+    def __str__(self):
+        return f'{self.interface}: BFD'
+
+    def get_absolute_url(self):
+        return reverse('plugins:netbox_routing:bfdinterface', args=[self.pk])

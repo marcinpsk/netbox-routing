@@ -1,8 +1,20 @@
 from .community import *
 from .static import StaticRouteViewSet
 from .ospf import OSPFInstanceViewSet, OSPFAreaViewSet, OSPFInterfaceViewSet
+from .isis import (
+    ISISInstanceViewSet,
+    ISISInterfaceViewSet,
+    ISISSettingViewSet,
+    ISISLevelViewSet,
+    ISISInterfaceLevelViewSet,
+    ISISSegmentRoutingViewSet,
+    ISISFlexAlgoViewSet,
+    ISISPrefixSIDViewSet,
+    ISISSRv6LocatorViewSet,
+)
 from .bgp import *
 from .objects import *
+from .redistribution import *
 from .eigrp import (
     EIGRPRouterViewSet,
     EIGRPAddressFamilyViewSet,
@@ -22,6 +34,7 @@ __all__ = (
     'BGPSessionTemplateViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
+    'BFDInterfaceViewSet',
     'EIGRPRouterViewSet',
     'EIGRPAddressFamilyViewSet',
     'EIGRPNetworkViewSet',
@@ -29,10 +42,20 @@ __all__ = (
     'OSPFInstanceViewSet',
     'OSPFAreaViewSet',
     'OSPFInterfaceViewSet',
+    'ISISInstanceViewSet',
+    'ISISInterfaceViewSet',
+    'ISISSettingViewSet',
+    'ISISLevelViewSet',
+    'ISISInterfaceLevelViewSet',
+    'ISISSegmentRoutingViewSet',
+    'ISISFlexAlgoViewSet',
+    'ISISPrefixSIDViewSet',
+    'ISISSRv6LocatorViewSet',
     'PrefixListViewSet',
     'PrefixListEntryViewSet',
     'RouteMapViewSet',
     'RouteMapEntryViewSet',
+    'RedistributionViewSet',
     'CommunityViewSet',
     'CommunityListViewSet',
     'CommunityListEntryViewSet',

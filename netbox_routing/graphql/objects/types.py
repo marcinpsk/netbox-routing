@@ -114,6 +114,14 @@ class RouteMapEntryType(PrimaryObjectType):
     match_aspath: (
         Annotated["ASPathType", strawberry.lazy('netbox_routing.graphql.types')] | None
     )
+    apply_policy: (
+        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
+    call_policy: (
+        Annotated["RouteMapType", strawberry.lazy('netbox_routing.graphql.types')]
+        | None
+    )
 
 
 @strawberry_django.type(
