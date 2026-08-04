@@ -97,7 +97,6 @@ __all__ = (
     'BGPRouterEditView',
     # Routing Objects
     'CommunityListListView',
-    'CommunityListView',
     # 'CommunityListEntriesView',
     'CommunityListEditView',
     'CommunityListDeleteView',
