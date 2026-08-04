@@ -6,6 +6,7 @@ from netbox_routing.tests.redistribution.test_forms import *
 
 __all__ = (
     'StaticRouteTestCase',
+    'StaticRouteRefusalTestCase',
     'RedistributionFormTestCase',
     'OSPFInstanceTestCase',
     'OSPFAreaTestCase',

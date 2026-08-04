@@ -1,8 +1,14 @@
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext as _
 
 from dcim.models import Device
 from ipam.models import VRF
 from netbox.forms import PrimaryModelForm
+from netbox_routing.helpers.static import (
+    interface_only_conversion_errors,
+    shared_device_triple_errors,
+    stored_route,
+)
 from netbox_routing.models import StaticRoute
 from utilities.forms.fields import (
     DynamicModelChoiceField,
@@ -72,6 +78,34 @@ class StaticRouteForm(PrimaryModelForm):
             self.fields['devices'].initial = self.instance.devices.all().values_list(
                 'id', flat=True
             )
+
+    def clean(self):
+        # NetBox's PrimaryModelForm.clean() returns None, so read the attribute.
+        super().clean()
+        cleaned_data = self.cleaned_data
+
+        stored = stored_route(self.instance)
+        errors = {}
+        errors.update(
+            shared_device_triple_errors(
+                stored,
+                cleaned_data.get('vrf'),
+                cleaned_data.get('prefix'),
+                cleaned_data.get('next_hop'),
+                cleaned_data.get('devices'),
+            )
+        )
+        errors.update(
+            interface_only_conversion_errors(
+                stored,
+                cleaned_data.get('next_hop'),
+                cleaned_data.get('interface_next_hop'),
+            )
+        )
+        if errors:
+            raise ValidationError(errors)
+
+        return cleaned_data
 
     def save(self, *args, **kwargs):
         instance = super().save(*args, **kwargs)
