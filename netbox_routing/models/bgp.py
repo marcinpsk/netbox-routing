@@ -302,9 +302,7 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
         on_delete=models.PROTECT,
         related_name='router',
     )
-    router_id = IPAddressField(
-        verbose_name=_('Router ID'), blank=True, null=True
-    )
+    router_id = IPAddressField(verbose_name=_('Router ID'), blank=True, null=True)
     settings = GenericRelation(
         verbose_name=_('Settings'),
         to='netbox_routing.BGPSetting',
