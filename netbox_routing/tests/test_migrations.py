@@ -67,19 +67,30 @@ class MigrationDependencyTestCase(SimpleTestCase):
                 continue  # __first__ / __latest__ are resolved by Django, not by filename
             names = _migration_names(app_label)
             if names is None:
-                missing.append(f'{migration}: app {app_label!r} has no migrations package')
+                missing.append(
+                    f'{migration}: app {app_label!r} has no migrations package'
+                )
             elif name not in names:
                 missing.append(f'{migration}: {app_label}.{name} is not on disk')
 
-        self.assertEqual(missing, [], 'Dependencies on migrations that do not exist:\n' + '\n'.join(missing))
+        self.assertEqual(
+            missing,
+            [],
+            'Dependencies on migrations that do not exist:\n' + '\n'.join(missing),
+        )
 
     def test_initial_still_orders_after_the_apps_it_references(self):
         # The FK targets in 0001_initial are created by those apps, so dropping the
         # dependencies (the right fix elsewhere) would leave this migration unordered.
         initial = (_MIGRATIONS_DIR / '0001_initial.py').read_text()
-        referenced = {target.split('.')[0] for target in re.findall(r"to='([a-z]+\.\w+)'", initial)}
+        referenced = {
+            target.split('.')[0]
+            for target in re.findall(r"to='([a-z]+\.\w+)'", initial)
+        }
         depended_on = {
-            app for migration, app, _ in _declared_dependencies() if migration == '0001_initial.py'
+            app
+            for migration, app, _ in _declared_dependencies()
+            if migration == '0001_initial.py'
         }
 
         for app_label in referenced - {'netbox_routing'}:
