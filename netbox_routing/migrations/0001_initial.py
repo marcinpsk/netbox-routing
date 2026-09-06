@@ -13,9 +13,9 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('ipam', '0057_created_datetimefield'),
-        ('extras', '0072_created_datetimefield'),
-        ('dcim', '0153_created_datetimefield'),
+        ('ipam', '__first__'),
+        ('extras', '__first__'),
+        ('dcim', '__first__'),
     ]
 
     operations = [
