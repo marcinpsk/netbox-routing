@@ -146,6 +146,27 @@ class StaticRouteRefusalAPITestCase(APITestCase):
         self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
         self.assertIn('prefix', response.data)
 
+    def test_patch_can_leave_a_shared_device_while_landing_on_a_triple(self):
+        self.add_permissions('netbox_routing.change_staticroute')
+        self._route()
+        edited = self._route(next_hop=IPAddress('10.10.10.2'))
+
+        url = reverse(
+            'plugins-api:netbox_routing-api:staticroute-detail', args=[edited.pk]
+        )
+        response = self.client.patch(
+            url,
+            {
+                'devices': [self.other_device.pk],
+                'next_hop': '10.10.10.1',
+            },
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertEqual(edited.devices.get(), self.other_device)
+
     def test_patch_keeping_its_own_triple_is_allowed(self):
         self.add_permissions('netbox_routing.change_staticroute')
         edited = self._route()

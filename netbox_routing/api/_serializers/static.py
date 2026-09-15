@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
@@ -9,7 +9,9 @@ from netbox.api.serializers import NetBoxModelSerializer
 from netbox_routing.api.field_serializers import IPAddressField
 from netbox_routing.helpers.static import (
     interface_only_conversion_errors,
+    is_static_route_device_triple_violation,
     lock_static_route_devices,
+    remove_discarded_static_route_devices,
     shared_device_triple_errors,
     stored_route,
     triple_key,
@@ -153,25 +155,39 @@ class StaticRouteSerializer(NetBoxModelSerializer):
 
     def create(self, validated_data):
         devices = validated_data.pop('devices', None)
-        with transaction.atomic():
-            lock_static_route_devices(devices)
-            self._validate_locked_write(validated_data, devices)
-            instance = super().create(validated_data)
+        try:
+            with transaction.atomic():
+                lock_static_route_devices(devices)
+                self._validate_locked_write(validated_data, devices)
+                instance = super().create(validated_data)
 
-            return self._update_devices(instance, devices)
+                return self._update_devices(instance, devices)
+        except IntegrityError as error:
+            self._raise_database_clash(error, validated_data, devices)
 
     def update(self, instance, validated_data):
         devices = validated_data.pop('devices', None)
-        with transaction.atomic():
-            stored = stored_route(instance, for_update=True)
-            instance.refresh_from_db()
-            stored_devices = list(stored.devices.all())
-            affected_devices = devices if devices is not None else stored_devices
-            lock_static_route_devices([*stored_devices, *affected_devices])
-            self._validate_locked_write(validated_data, affected_devices, stored)
-            instance = super().update(instance, validated_data)
+        try:
+            with transaction.atomic():
+                stored = stored_route(instance, for_update=True)
+                instance.refresh_from_db()
+                stored_devices = list(stored.devices.all())
+                affected_devices = devices if devices is not None else stored_devices
+                lock_static_route_devices([*stored_devices, *affected_devices])
+                self._validate_locked_write(validated_data, affected_devices, stored)
+                if devices is not None:
+                    remove_discarded_static_route_devices(
+                        instance,
+                        devices,
+                        self._pending(validated_data, 'vrf', stored),
+                        self._pending(validated_data, 'prefix', stored),
+                        self._pending(validated_data, 'next_hop', stored),
+                    )
+                instance = super().update(instance, validated_data)
 
-            return self._update_devices(instance, devices)
+                return self._update_devices(instance, devices)
+        except IntegrityError as error:
+            self._raise_database_clash(error, validated_data, affected_devices, stored)
 
     def _validate_locked_write(self, validated_data, devices, stored=None):
         errors = shared_device_triple_errors(
@@ -183,6 +199,23 @@ class StaticRouteSerializer(NetBoxModelSerializer):
         )
         if errors:
             raise serializers.ValidationError(errors)
+
+    def _raise_database_clash(
+        self, error, validated_data, devices, stored=None
+    ) -> None:
+        if not is_static_route_device_triple_violation(error):
+            raise error
+        error_devices = list(devices) if devices is not None else []
+        if stored is not None:
+            error_devices.extend(stored.devices.all())
+        errors = shared_device_triple_errors(
+            stored,
+            self._pending(validated_data, 'vrf'),
+            self._pending(validated_data, 'prefix'),
+            self._pending(validated_data, 'next_hop'),
+            error_devices,
+        )
+        raise serializers.ValidationError(errors) from error
 
     def _update_devices(self, instance: StaticRoute, devices: object) -> StaticRoute:
         if devices:

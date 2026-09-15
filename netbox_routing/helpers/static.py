@@ -3,11 +3,18 @@
 from django.utils.translation import gettext as _
 
 __all__ = (
+    'STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT',
     'interface_only_conversion_errors',
+    'is_static_route_device_triple_violation',
     'lock_static_route_devices',
+    'remove_discarded_static_route_devices',
     'shared_device_triple_errors',
     'stored_route',
     'triple_key',
+)
+
+STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT = (
+    'netbox_routing_staticroute_device_triple_unique'
 )
 
 
@@ -36,6 +43,39 @@ def lock_static_route_devices(devices):
         .order_by('pk')
         .values_list('pk', flat=True)
     )
+
+
+def is_static_route_device_triple_violation(error):
+    """Return whether an IntegrityError came from the static-route trigger."""
+    diagnostics = getattr(error.__cause__, 'diag', None)
+    return (
+        getattr(diagnostics, 'constraint_name', None)
+        == STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT
+    )
+
+
+def remove_discarded_static_route_devices(instance, devices, vrf, prefix, next_hop):
+    """Remove discarded links that would reject the route's pending triple."""
+    if instance is None:
+        return
+    keep_ids = _device_ids(devices)
+    discarded = instance.devices.exclude(pk__in=keep_ids)
+    if not discarded.exists():
+        return
+
+    from netbox_routing.models import StaticRoute
+
+    conflicting_ids = (
+        StaticRoute.objects.filter(
+            vrf=vrf,
+            prefix=prefix,
+            next_hop=None if _blank(next_hop) else next_hop,
+            devices__in=discarded,
+        )
+        .exclude(pk=instance.pk)
+        .values_list('devices', flat=True)
+    )
+    instance.devices.remove(*discarded.filter(pk__in=conflicting_ids))
 
 
 def triple_key(vrf, prefix, next_hop):

@@ -2,7 +2,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import connection
+from django.db import IntegrityError, connection
 from django.test import TransactionTestCase
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
@@ -102,3 +102,34 @@ class StaticRouteConcurrencyTestCase(TransactionTestCase):
             )
 
         self._run_concurrent_writes(serializer, (DRFValidationError,))
+
+    def test_database_serializes_concurrent_device_assignments(self):
+        routes = [
+            StaticRoute.objects.create(
+                prefix='198.18.1.0/24',
+                next_hop='192.0.2.2',
+            )
+            for _ in range(2)
+        ]
+        barrier = threading.Barrier(2)
+
+        def assign_device(route_pk):
+            try:
+                route = StaticRoute.objects.get(pk=route_pk)
+                barrier.wait(timeout=10)
+                try:
+                    route.devices.add(self.device)
+                except IntegrityError as error:
+                    return 'refused', error
+                return 'created', None
+            finally:
+                connection.close()
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(assign_device, route.pk) for route in routes]
+            results = [future.result(timeout=15) for future in futures]
+
+        self.assertCountEqual(
+            [outcome for outcome, _ in results], ['created', 'refused']
+        )
+        self.assertEqual(StaticRoute.objects.filter(devices=self.device).count(), 1)

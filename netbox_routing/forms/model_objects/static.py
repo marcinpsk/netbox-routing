@@ -1,5 +1,5 @@
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils.translation import gettext as _
 
 from dcim.models import Device
@@ -7,7 +7,9 @@ from ipam.models import VRF
 from netbox.forms import PrimaryModelForm
 from netbox_routing.helpers.static import (
     interface_only_conversion_errors,
+    is_static_route_device_triple_violation,
     lock_static_route_devices,
+    remove_discarded_static_route_devices,
     shared_device_triple_errors,
     stored_route,
 )
@@ -111,22 +113,44 @@ class StaticRouteForm(PrimaryModelForm):
 
     def save(self, *args, **kwargs):
         devices = self.cleaned_data['devices']
-        with transaction.atomic():
-            stored = stored_route(self.instance, for_update=True)
-            lock_devices = list(devices)
+        try:
+            with transaction.atomic():
+                stored = stored_route(self.instance, for_update=True)
+                lock_devices = list(devices)
+                if stored is not None:
+                    lock_devices.extend(stored.devices.all())
+                lock_static_route_devices(lock_devices)
+                errors = shared_device_triple_errors(
+                    stored,
+                    self.cleaned_data.get('vrf'),
+                    self.cleaned_data.get('prefix'),
+                    self.cleaned_data.get('next_hop'),
+                    devices,
+                )
+                if errors:
+                    raise ValidationError(errors)
+
+                remove_discarded_static_route_devices(
+                    stored,
+                    devices,
+                    self.cleaned_data.get('vrf'),
+                    self.cleaned_data.get('prefix'),
+                    self.cleaned_data.get('next_hop'),
+                )
+                instance = super().save(*args, **kwargs)
+                instance.devices.set(devices)
+                return instance
+        except IntegrityError as error:
+            if not is_static_route_device_triple_violation(error):
+                raise
+            error_devices = list(devices)
             if stored is not None:
-                lock_devices.extend(stored.devices.all())
-            lock_static_route_devices(lock_devices)
+                error_devices.extend(stored.devices.all())
             errors = shared_device_triple_errors(
                 stored,
                 self.cleaned_data.get('vrf'),
                 self.cleaned_data.get('prefix'),
                 self.cleaned_data.get('next_hop'),
-                devices,
+                error_devices,
             )
-            if errors:
-                raise ValidationError(errors)
-
-            instance = super().save(*args, **kwargs)
-            instance.devices.set(devices)
-            return instance
+            raise ValidationError(errors) from error

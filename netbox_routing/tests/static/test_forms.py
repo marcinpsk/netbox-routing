@@ -1,5 +1,6 @@
 import contextlib
 
+from django.db import connection, transaction
 from django.test import TestCase
 
 from dcim.models import Device
@@ -27,6 +28,21 @@ def _without_nso_plugin():
     finally:
         if accessor is not None:
             StaticRoute.nso_states = accessor
+
+
+@contextlib.contextmanager
+def _allow_legacy_static_route_duplicate():
+    """Seed a duplicate that existed before the database trigger was installed."""
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                'DROP TRIGGER netbox_routing_staticroute_devices_unique_triple '
+                'ON netbox_routing_staticroute_devices'
+            )
+        try:
+            yield
+        finally:
+            transaction.set_rollback(True)
 
 
 class StaticRouteTestCase(TestCase):
@@ -154,14 +170,14 @@ class StaticRouteRefusalTestCase(TestCase):
         Renaming or re-metricing one of them is neither a second route nor an edit
         landing on another object's triple, so refusing it would be a fourth refusal.
         """
-        self._route()
-        edited = self._route()
+        with _allow_legacy_static_route_duplicate():
+            self._route()
+            edited = self._route()
+            form = StaticRouteForm(
+                data=self._data(name='Renamed', metric=9), instance=edited
+            )
 
-        form = StaticRouteForm(
-            data=self._data(name='Renamed', metric=9), instance=edited
-        )
-
-        self.assertTrue(form.is_valid(), form.errors)
+            self.assertTrue(form.is_valid(), form.errors)
 
     def test_adding_a_clash_free_device_to_a_preexisting_duplicate_is_allowed(self):
         """Only the devices this write actually adds are checked.
@@ -169,15 +185,15 @@ class StaticRouteRefusalTestCase(TestCase):
         Two legacy duplicates already share a device; assigning one of them to a further,
         conflict-free device must not rediscover the old clash on the shared one.
         """
-        self._route()
-        edited = self._route()
+        with _allow_legacy_static_route_duplicate():
+            self._route()
+            edited = self._route()
+            form = StaticRouteForm(
+                data=self._data(devices=[self.device.pk, self.other_device.pk]),
+                instance=edited,
+            )
 
-        form = StaticRouteForm(
-            data=self._data(devices=[self.device.pk, self.other_device.pk]),
-            instance=edited,
-        )
-
-        self.assertTrue(form.is_valid(), form.errors)
+            self.assertTrue(form.is_valid(), form.errors)
 
     def test_adding_a_device_that_already_holds_the_triple_is_refused(self):
         self._route()
@@ -200,6 +216,19 @@ class StaticRouteRefusalTestCase(TestCase):
         )
 
         self.assertTrue(form.is_valid(), form.errors)
+
+    def test_edit_can_leave_a_shared_device_while_landing_on_a_triple(self):
+        self._route()
+        edited = self._route(next_hop='10.10.10.2')
+        form = StaticRouteForm(
+            data=self._data(devices=[self.other_device.pk]),
+            instance=edited,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        route = form.save()
+
+        self.assertEqual(route.devices.get(), self.other_device)
 
     # ── (3) interface-only conversion, and the plugin-absent topology ───────────
 
