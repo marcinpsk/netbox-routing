@@ -39,7 +39,16 @@ class RouteMapViewSet(NetBoxModelViewSet):
 
 
 class RouteMapEntryViewSet(NetBoxModelViewSet):
-    queryset = RouteMapEntry.objects.all()
+    queryset = RouteMapEntry.objects.select_related(
+        'route_map', 'call_policy', 'apply_policy'
+    ).prefetch_related(
+        'match_prefix_list',
+        'match_community_list',
+        'match_community',
+        'match_aspath',
+        'set_communities__community_list',
+        'set_communities__communities',
+    )
     serializer_class = RouteMapEntrySerializer
     filterset_class = filtersets.RouteMapEntryFilterSet
 
