@@ -1,5 +1,12 @@
 from django.db import migrations
 
+# The triggers lock the Device rows they compare, but they do not write them, so a
+# REPEATABLE READ or SERIALIZABLE writer can take the lock and still read its older
+# snapshot, miss a just-committed link and permit a duplicate. See the PostgreSQL note on
+# application-level consistency with locking. The guarantee therefore holds at READ
+# COMMITTED, which is the Django and NetBox default and the only level any writer in this
+# stack uses.
+
 FORWARD_SQL = """
 CREATE FUNCTION netbox_routing_check_staticroute_device_triple()
 RETURNS trigger AS $$
