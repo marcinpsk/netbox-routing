@@ -12,6 +12,7 @@ from netbox_routing.tests.redistribution.test_api import *
 __all__ = (
     'AppTest',
     'StaticRouteTestCase',
+    'StaticRouteRefusalAPITestCase',
     'RedistributionAPITestCase',
     'OSPFInstanceTestCase',
     'OSPFAreaTestCase',
