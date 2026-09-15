@@ -35,6 +35,8 @@ __all__ = (
 
 
 class BGPSettingMixin:
+    setting_field_exclusions = ()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._append_settings_fields()
@@ -62,7 +64,12 @@ class BGPSettingMixin:
             'additional_paths_install',
             'test',
         ]
+        setting_fields = [
+            key for key in setting_fields if key not in self.setting_field_exclusions
+        ]
         for key, label in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             initial = None
             if hasattr(self, 'instance'):
                 setting = BGPSetting.objects.filter(
@@ -122,11 +129,15 @@ class BGPSettingMixin:
     def save(self, *args, **kwargs):
         settings = {}
         for key, name in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             if key in self.cleaned_data:
                 settings[key] = self.cleaned_data.pop(key)
         obj = super().save(*args, **kwargs)
 
         for key, name in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             value = settings.get(key, None)
             setting = BGPSetting.objects.filter(
                 assigned_object_type=self.get_assigned_object_type(),
@@ -401,6 +412,8 @@ class BGPSessionTemplateForm(TenancyForm, PrimaryModelForm):
 
 
 class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
+    setting_field_exclusions = ('router_id',)
+
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -494,7 +507,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             ),
             name=_('Assigned Object'),
         ),
-        FieldSet('asn', name=_('Router')),
+        FieldSet('asn', 'router_id', name=_('Router')),
         FieldSet(
             'peer_templates',
             'policy_templates',
@@ -517,6 +530,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'cluster',
             'virtual_machine',
             'asn',
+            'router_id',
             'policy_templates',
             'session_templates',
             'peer_templates',
