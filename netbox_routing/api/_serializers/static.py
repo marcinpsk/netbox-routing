@@ -198,7 +198,9 @@ class StaticRouteSerializer(NetBoxModelSerializer):
             devices,
         )
         if errors:
-            raise serializers.ValidationError(errors)
+            raise serializers.ValidationError(
+                {field: [message] for field, message in errors.items()}
+            )
 
     def _raise_database_clash(
         self, error, validated_data, devices, stored=None
@@ -215,7 +217,9 @@ class StaticRouteSerializer(NetBoxModelSerializer):
             self._pending(validated_data, 'next_hop'),
             error_devices,
         )
-        raise serializers.ValidationError(errors) from error
+        raise serializers.ValidationError(
+            {field: [message] for field, message in errors.items()}
+        ) from error
 
     def _update_devices(self, instance: StaticRoute, devices: object) -> StaticRoute:
         if devices:
