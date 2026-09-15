@@ -178,12 +178,16 @@ class BGPPeerTestCase(
         device = Device.objects.create(
             name='bgp-peer-dev', device_type=dtype, role=drole, site=dsite
         )
+        form_router = BGPRouter.objects.create(
+            name='BGP Peer Form Router', asn=cls.asn, assigned_object=device
+        )
+        form_scope = BGPScope.objects.create(router=form_router)
         update_iface = Interface.objects.create(
             device=device, name='Loopback0', type='virtual'
         )
         cls.form_data = {
             'name': 'BGP Peer: 10.0.0.7/24',
-            'scope': cls.scope.pk,
+            'scope': form_scope.pk,
             'peer': peer.pk,
             'source': source_ip.pk,
             'update_source': update_iface.pk,

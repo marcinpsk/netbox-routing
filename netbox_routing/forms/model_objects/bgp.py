@@ -704,10 +704,17 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Source Address'),
     )
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
     update_source = DynamicModelChoiceField(
         queryset=Interface.objects.all(),
         required=False,
         selector=True,
+        query_params={'device_id': '$device'},
         label=_('Update Source'),
     )
 
@@ -718,7 +725,7 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
-        FieldSet('source', 'update_source', name=_('Session Source')),
+        FieldSet('source', 'device', 'update_source', name=_('Session Source')),
         FieldSet(
             'enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')
         ),
@@ -749,6 +756,26 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'tags',
             'owner',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.update_source_id:
+            self.initial['device'] = self.instance.update_source.device_id
+
+    def clean(self):
+        super().clean()
+        device = self.cleaned_data.get('device')
+        update_source = self.cleaned_data.get('update_source')
+        if (
+            device is not None
+            and update_source is not None
+            and update_source.device_id != device.pk
+        ):
+            self.add_error(
+                'update_source',
+                _('The update source must belong to the selected device.'),
+            )
+        return self.cleaned_data
 
     def save(self, *args, **kwargs):
         return super().save(*args, **kwargs)
