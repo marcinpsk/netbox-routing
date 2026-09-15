@@ -1,3 +1,6 @@
+from django.urls import reverse
+from rest_framework import status
+
 from dcim.models import Interface
 from utilities.testing import APIViewTestCases, create_test_device
 
@@ -240,6 +243,25 @@ class BGPPeerTestCase(
             }
             for i in range(5, 7)
         ]
+
+    def test_patch_can_clear_update_source(self):
+        self.add_permissions('netbox_routing.change_bgppeer')
+        device = create_test_device(name='BGP API Update Source Device')
+        interface = Interface.objects.create(
+            device=device, name='Loopback0', type='virtual'
+        )
+        peer = self.model.objects.first()
+        peer.update_source = interface
+        peer.save()
+
+        url = reverse('plugins-api:netbox_routing-api:bgppeer-detail', args=[peer.pk])
+        response = self.client.patch(
+            url, {'update_source': None}, format='json', **self.header
+        )
+
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        peer.refresh_from_db()
+        self.assertIsNone(peer.update_source)
 
 
 class BGPPeerAddressFamilyTestCase(
