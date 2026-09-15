@@ -71,10 +71,12 @@ def community_kind(value):
         return CommunityKindChoices.KIND_EXTENDED
     if v.lower() in COMMUNITY_WELL_KNOWN:
         return CommunityKindChoices.KIND_STANDARD
-    # bare three-part (a:b:c) is a Cisco large community; 2-part / regex is standard
+    # A bare decimal a:b:c is a Cisco large community. Other values are standard.
+    parts = v.split(':')
     return (
         CommunityKindChoices.KIND_LARGE
-        if v.count(':') >= 2
+        if len(parts) == 3
+        and all(part.isascii() and part.isdecimal() for part in parts)
         else CommunityKindChoices.KIND_STANDARD
     )
 
@@ -140,7 +142,7 @@ class Community(PrimaryModel):
         # permit regex metacharacters and letters (keywords) and drop the part cap. A Community
         # holding a regex is match-only — never used in a `set community` (the writer only mints
         # regex members for community-LIST entries).
-        validators=[RegexValidator(r'^[\w.:*^$()\[\]|+?\\-]+$')],
+        validators=[RegexValidator(r'\A[\w.:*^$()\[\]|+?\\-]+\Z')],
     )
 
     status = models.CharField(

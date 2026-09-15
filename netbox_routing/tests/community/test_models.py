@@ -84,6 +84,13 @@ class CommunityTestCase(TestCase):
             with self.assertRaises(ValidationError):
                 bad.full_clean()
 
+    def test_trailing_newline_rejected(self):
+        role = Role.objects.get(name='Test Role')
+        Community(community='65000:1', status='active', role=role).full_clean()
+
+        with self.assertRaises(ValidationError):
+            Community(community='65000:1\n', status='active', role=role).full_clean()
+
     def test_str_with_name(self):
         role = Role.objects.get(name='Test Role')
         community = Community(
@@ -153,11 +160,20 @@ class CommunityKindTestCase(TestCase):
                 self.assertEqual(community_kind(value), expected)
                 self.assertEqual(Community(community=value).kind, expected)
 
-    def test_bare_three_part_is_large(self):
-        # A bare a:b:c (no keyword) is the Cisco large-community form.
-        self.assertEqual(
-            community_kind('1111:6370:1234'), CommunityKindChoices.KIND_LARGE
+    def test_bare_large_community_requires_three_decimal_parts(self):
+        cases = (
+            ('65000:1:2', CommunityKindChoices.KIND_LARGE, 'large-community'),
+            ('65000:1', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('65000:1:2:3', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:*', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:.*', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:*:*', CommunityKindChoices.KIND_STANDARD, 'community'),
         )
+
+        for value, kind, keyword in cases:
+            with self.subTest(value=value):
+                self.assertEqual(community_kind(value), kind)
+                self.assertEqual(community_match_keyword(value), keyword)
 
     def test_ext_prefix_aliases(self):
         for value in (
