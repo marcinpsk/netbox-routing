@@ -122,6 +122,7 @@ class RouteMapEntryTable(NetBoxTable):
             'match_prefix_list',
             'match_community_list',
             'match_aspath',
+            'match_community',
             'match',
             'set',
         )

@@ -4,6 +4,7 @@ from ipam.models import Prefix
 from utilities.testing import ViewTestCases
 
 from netbox_routing.models.objects import *
+from netbox_routing.tables.objects import RouteMapEntryTable
 from netbox_routing.tests.base import (
     AutomatedModelCreationMixin,
     AutomatedFormDataCreationMixin,
@@ -260,3 +261,6 @@ class RouteMapEntryTestCase(
 
     def _get_base_url(self):
         return 'plugins:netbox_routing:routemapentry_{}'
+
+    def test_default_table_columns_include_match_community(self):
+        self.assertIn('match_community', RouteMapEntryTable.Meta.default_columns)

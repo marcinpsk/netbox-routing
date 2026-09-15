@@ -53,7 +53,7 @@
   "routemap:api_list_objects": 11,
   "routemap:list_objects_with_permission": 16,
   "routemapentry:api_list_objects": 16,
-  "routemapentry:list_objects_with_permission": 20,
+  "routemapentry:list_objects_with_permission": 21,
   "routemapentrysetcommunity:api_list_objects": 12,
   "staticroute:api_list_objects": 13,
   "staticroute:list_objects_with_permission": 19
