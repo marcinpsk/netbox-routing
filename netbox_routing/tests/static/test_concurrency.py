@@ -387,32 +387,131 @@ class StaticRouteConcurrencyTestCase(TransactionTestCase):
         self.assertEqual(refusal.detail, {'prefix': [expected]})
 
     def test_database_serializes_concurrent_device_assignments(self):
-        routes = [
-            StaticRoute.objects.create(
-                prefix='198.18.1.0/24',
-                next_hop='192.0.2.2',
-            )
-            for _ in range(2)
-        ]
-        barrier = threading.Barrier(2)
+        raw_route = StaticRoute.objects.create(
+            prefix='198.18.3.0/24',
+            next_hop='192.0.2.4',
+        )
+        application_route = StaticRoute.objects.create(
+            prefix='198.18.3.0/24',
+            next_hop='192.0.2.4',
+        )
 
-        def assign_device(route_pk):
+        def assign_raw(ready):
+            ready()
             try:
-                route = StaticRoute.objects.get(pk=route_pk)
-                barrier.wait(timeout=10)
-                try:
-                    route.devices.add(self.device)
-                except IntegrityError as error:
-                    return 'refused', error
-                return 'created', None
+                raw_route.devices.add(self.device)
+                return 'assigned', None
+            except IntegrityError as error:
+                return 'refused', error
+
+        def assign_through_application(ready):
+            route = StaticRoute.objects.get(pk=application_route.pk)
+            serializer = StaticRouteSerializer(
+                route,
+                data={'devices': [self.device.pk]},
+                partial=True,
+            )
+            if not serializer.is_valid():
+                raise AssertionError(serializer.errors)
+            ready()
+            try:
+                serializer.save()
+                return 'assigned', None
+            except DRFValidationError as error:
+                return 'refused', error
+
+        results = self._run_while_locked(
+            lambda: type(self.device)
+            .objects.select_for_update(no_key=True)
+            .get(pk=self.device.pk),
+            [assign_raw, assign_through_application],
+        )
+
+        self.assertEqual(results[0][0], 'assigned')
+        self.assertEqual(results[1][0], 'refused')
+        expected = self._clash_error(
+            '198.18.3.0/24',
+            '192.0.2.4',
+            self.device,
+            raw_route,
+        )
+        self.assertEqual(results[1][1].detail, {'prefix': [expected]})
+        self.assertEqual(StaticRoute.objects.filter(devices=self.device).count(), 1)
+
+    def test_api_retries_a_raw_link_update_deadlock(self):
+        route = StaticRoute.objects.create(
+            prefix='198.18.2.0/24',
+            next_hop='192.0.2.3',
+        )
+        route.devices.add(self.device)
+        link = StaticRoute.devices.through.objects.get(
+            staticroute=route,
+            device=self.device,
+        )
+        user = get_user_model().objects.create_superuser(
+            username='static-route-deadlock-race'
+        )
+        client = self._api_client(user)
+        url = reverse(
+            'plugins-api:netbox_routing-api:staticroute-detail',
+            args=[route.pk],
+        )
+        raw_locked = threading.Event()
+        allow_raw_update = threading.Event()
+        backend_pids = Queue()
+
+        def update_link():
+            close_old_connections()
+            try:
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET LOCAL deadlock_timeout = '30s'")
+                    StaticRoute.devices.through.objects.select_for_update().get(
+                        pk=link.pk
+                    )
+                    backend_pids.put(('raw', self._backend_pid()))
+                    raw_locked.set()
+                    if not allow_raw_update.wait(timeout=self.wait_timeout):
+                        raise AssertionError('The raw link update was not released.')
+                    return StaticRoute.devices.through.objects.filter(
+                        pk=link.pk
+                    ).update(device=self.other_device)
             finally:
                 connection.close()
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = [executor.submit(assign_device, route.pk) for route in routes]
-            results = [future.result(timeout=15) for future in futures]
+        def remove_devices():
+            close_old_connections()
+            try:
+                if not raw_locked.wait(timeout=self.wait_timeout):
+                    raise AssertionError('The raw writer did not lock the link.')
+                with connection.cursor() as cursor:
+                    cursor.execute("SET deadlock_timeout = '1s'")
+                backend_pids.put(('api', self._backend_pid()))
+                return client.patch(url, {'devices': []}, format='json')
+            finally:
+                connection.close()
 
-        self.assertCountEqual(
-            [outcome for outcome, _ in results], ['created', 'refused']
-        )
-        self.assertEqual(StaticRoute.objects.filter(devices=self.device).count(), 1)
+        executor = ThreadPoolExecutor(max_workers=2)
+        raw_future = executor.submit(update_link)
+        api_future = None
+        try:
+            role, raw_pid = backend_pids.get(timeout=self.wait_timeout)
+            self.assertEqual(role, 'raw')
+            api_future = executor.submit(remove_devices)
+            role, api_pid = backend_pids.get(timeout=self.wait_timeout)
+            self.assertEqual(role, 'api')
+            self._wait_until_blocked_by(api_pid, raw_pid, api_future)
+
+            allow_raw_update.set()
+            self._wait_until_blocked_by(raw_pid, api_pid, raw_future)
+
+            response = api_future.result(timeout=self.wait_timeout)
+            updated = raw_future.result(timeout=self.wait_timeout)
+        finally:
+            allow_raw_update.set()
+            executor.shutdown(wait=True, cancel_futures=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(updated, 1)
+        route.refresh_from_db()
+        self.assertFalse(route.devices.exists())
