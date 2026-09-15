@@ -40,6 +40,39 @@ class BGPRouterTestCase(ASNMixin, TestCase):
         instance.full_clean()
         instance.save()
 
+    def test_router_id_requires_ipv4_or_blank(self):
+        router = self.model(
+            name='IPv6 Router ID',
+            asn=self.asn,
+            router_id='2001:db8::1',
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            router.full_clean()
+
+        self.assertIn('router_id', context.exception.message_dict)
+
+        for index, router_id in enumerate(('192.0.2.1', None, '')):
+            with self.subTest(router_id=router_id):
+                router = self.model(
+                    name=f'Valid Router ID {index}',
+                    asn=self.asn,
+                    router_id=router_id,
+                )
+                router.full_clean()
+
+    def test_invalid_router_id_reports_validation_error(self):
+        router = self.model(
+            name='Invalid Router ID',
+            asn=self.asn,
+            router_id='invalid',
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            router.full_clean()
+
+        self.assertIn('router_id', context.exception.message_dict)
+
 
 class BGPScopeTestCase(BGPRouterMixin, VRFMixin, TestCase):
     model = BGPScope

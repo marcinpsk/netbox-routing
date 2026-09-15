@@ -1,5 +1,6 @@
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from django.db.models import ManyToManyField
@@ -385,6 +386,13 @@ class BGPRouter(SearchAttributeMixin, PrimaryModel):
                 condition=models.Q(asn__isnull=False) | models.Q(name__isnull=False),
             ),
         ]
+
+    def clean(self):
+        super().clean()
+        if getattr(self.router_id, 'version', 4) != 4:
+            raise ValidationError(
+                {'router_id': _('Router ID must be an IPv4 address.')}
+            )
 
     def __str__(self):
         if self.name:
