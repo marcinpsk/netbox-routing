@@ -1,11 +1,22 @@
+from django.db import IntegrityError, transaction
+from django.urls import reverse
 from netaddr.ip import IPAddress
-from ipam.models import VRF
-from utilities.testing import APIViewTestCases, create_test_device
+from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.views import exception_handler
 
+from ipam.models import VRF
+from utilities.testing import APITestCase, APIViewTestCases, create_test_device
+
+from netbox_routing.api._serializers.static import StaticRouteSerializer
+from netbox_routing.helpers.static import STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT
 from netbox_routing.models import StaticRoute
 from netbox_routing.tests.base import IPAddressFieldMixin
 
-__all__ = ('StaticRouteTestCase',)
+__all__ = (
+    'StaticRouteTestCase',
+    'StaticRouteRefusalAPITestCase',
+)
 
 
 class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase):
@@ -72,3 +83,227 @@ class StaticRouteTestCase(IPAddressFieldMixin, APIViewTestCases.APIViewTestCase)
                 'permanent': True,
             },
         ]
+
+
+class StaticRouteRefusalAPITestCase(APITestCase):
+    """The REST path refuses the same shared-device triple the form does.
+
+    Without this the API returns 200 over an intent the rest of the stack rejects — DRF
+    never calls ``full_clean()``, so a model-level check would not run here at all.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.device = create_test_device(name='API Refusal Device 1')
+        cls.other_device = create_test_device(name='API Refusal Device 2')
+
+    def _route(self, devices=None, **kwargs):
+        fields = {'prefix': '10.0.0.0/24', 'next_hop': IPAddress('10.10.10.1')}
+        fields.update(kwargs)
+        route = StaticRoute.objects.create(**fields)
+        route.devices.set(devices if devices is not None else [self.device])
+        return route
+
+    def _payload(self, **overrides):
+        payload = {
+            'name': 'API Route',
+            'devices': [self.device.pk],
+            'vrf': None,
+            'prefix': '10.0.0.0/24',
+            'next_hop': '10.10.10.1',
+            'metric': 1,
+        }
+        payload.update(overrides)
+        return payload
+
+    def _database_clash_error(self):
+        clash = self._route()
+        refused = self._route(devices=[])
+        with self.assertRaises(IntegrityError) as raised, transaction.atomic():
+            refused.devices.add(self.device)
+
+        self.assertEqual(
+            raised.exception.__cause__.diag.constraint_name,
+            STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT,
+        )
+        clash.devices.clear()
+        self.assertFalse(StaticRoute.objects.filter(devices=self.device).exists())
+        return raised.exception
+
+    def test_database_refusal_without_a_visible_clash_returns_a_field_error(self):
+        trigger_error = self._database_clash_error()
+
+        class TriggerRefusalStaticRouteSerializer(StaticRouteSerializer):
+            def _update_devices(self, instance, devices):
+                raise trigger_error
+
+        serializer = TriggerRefusalStaticRouteSerializer(data=self._payload())
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        with self.assertRaises(ValidationError) as raised:
+            serializer.save()
+        response = exception_handler(raised.exception, {})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data,
+            {'prefix': ['A device cannot hold the same static route twice.']},
+        )
+
+    def test_create_with_a_duplicate_triple_on_a_shared_device_is_refused(self):
+        self.add_permissions('netbox_routing.add_staticroute')
+        self._route()
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        response = self.client.post(url, self._payload(), format='json', **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prefix', response.data)
+
+    def test_create_on_a_disjoint_device_is_allowed(self):
+        self.add_permissions('netbox_routing.add_staticroute')
+        self._route(devices=[self.other_device])
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        response = self.client.post(url, self._payload(), format='json', **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+
+    def test_patch_landing_on_another_routes_triple_is_refused(self):
+        self.add_permissions('netbox_routing.change_staticroute')
+        self._route()
+        edited = self._route(next_hop=IPAddress('10.10.10.2'))
+
+        url = reverse(
+            'plugins-api:netbox_routing-api:staticroute-detail', args=[edited.pk]
+        )
+        response = self.client.patch(
+            url, {'next_hop': '10.10.10.1'}, format='json', **self.header
+        )
+
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prefix', response.data)
+
+    def test_patch_can_leave_a_shared_device_while_landing_on_a_triple(self):
+        self.add_permissions('netbox_routing.change_staticroute')
+        self._route()
+        edited = self._route(next_hop=IPAddress('10.10.10.2'))
+
+        url = reverse(
+            'plugins-api:netbox_routing-api:staticroute-detail', args=[edited.pk]
+        )
+        response = self.client.patch(
+            url,
+            {
+                'devices': [self.other_device.pk],
+                'next_hop': '10.10.10.1',
+            },
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+        self.assertEqual(edited.devices.get(), self.other_device)
+
+    def test_patch_keeping_its_own_triple_is_allowed(self):
+        self.add_permissions('netbox_routing.change_staticroute')
+        edited = self._route()
+
+        url = reverse(
+            'plugins-api:netbox_routing-api:staticroute-detail', args=[edited.pk]
+        )
+        response = self.client.patch(url, {'metric': 7}, format='json', **self.header)
+
+        self.assertHttpStatus(response, status.HTTP_200_OK)
+
+    def test_bulk_create_with_two_identical_triples_on_one_device_is_refused(self):
+        """One list POST validates every child before any is saved, so a child's own
+        clash query cannot see its siblings."""
+        self.add_permissions('netbox_routing.add_staticroute')
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        payload = {
+            'prefix': '198.18.0.0/24',
+            'next_hop': '192.0.2.1',
+        }
+        request_data = [
+            self._payload(name='First', **payload),
+            self._payload(name='Second', **payload),
+        ]
+        serializer = StaticRouteSerializer(data=request_data, many=True)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('Entry 1 of this request', str(serializer.errors[1]['prefix'][0]))
+
+        response = self.client.post(
+            url,
+            request_data,
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(StaticRoute.objects.count(), 0)
+        # NetBox 4.7 reports a list POST failure as a sparse indexed list: only the
+        # items that failed appear, each as {'index': i, 'errors': {field: [messages]}}.
+        errors = response.data['errors']
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]['index'], 1)
+        self.assertIsInstance(errors[0]['errors']['prefix'], list)
+
+    def test_bulk_create_of_distinct_triples_is_allowed(self):
+        self.add_permissions('netbox_routing.add_staticroute')
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        response = self.client.post(
+            url,
+            [
+                self._payload(name='First'),
+                self._payload(name='Second', next_hop='10.10.10.2'),
+            ],
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertEqual(StaticRoute.objects.count(), 2)
+
+    def test_bulk_create_of_one_triple_on_disjoint_devices_is_allowed(self):
+        self.add_permissions('netbox_routing.add_staticroute')
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        response = self.client.post(
+            url,
+            [
+                self._payload(name='First'),
+                self._payload(name='Second', devices=[self.other_device.pk]),
+            ],
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_201_CREATED)
+        self.assertEqual(StaticRoute.objects.count(), 2)
+
+    def test_bulk_patch_does_not_run_the_cross_item_check(self):
+        """NetBox validates a bulk PATCH object by object with single-object serializers.
+
+        The list serializer never sees it, so its cross-item check — which reads a
+        partial payload's absent triple as blank — cannot fire false duplicates here.
+        """
+        self.add_permissions('netbox_routing.change_staticroute')
+        first = self._route()
+        second = self._route(next_hop=IPAddress('10.10.10.2'))
+
+        url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        response = self.client.patch(
+            url,
+            [
+                {'id': first.pk, 'devices': [self.device.pk]},
+                {'id': second.pk, 'devices': [self.device.pk]},
+            ],
+            format='json',
+            **self.header,
+        )
+
+        self.assertHttpStatus(response, status.HTTP_200_OK)

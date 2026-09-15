@@ -4,6 +4,7 @@ from netbox_routing.tests.community.test_models import *
 from netbox_routing.tests.eigrp.test_models import *
 from netbox_routing.tests.isis.test_models import *
 from netbox_routing.tests.ospf.test_models import *
+from netbox_routing.tests.redistribution.test_models import *
 from netbox_routing.tests.static.test_models import *
 
 __all__ = (
@@ -19,6 +20,7 @@ __all__ = (
     'ISISSegmentRoutingCleanTestCase',
     'ISISSRv6LocatorModelTestCase',
     'ISISMigrationStateTestCase',
+    'RedistributionModelTestCase',
     'EIGRPRouterTestCase',
     'EIGRPAddressFamilyTestCase',
     'EIGRPNetworkTestCase',
@@ -26,6 +28,7 @@ __all__ = (
     'CommunityTestCase',
     'CommunityListTestCase',
     'CommunityListEntryTestCase',
+    'CommunityKindTestCase',
     'AggregateModelTestExportsTestCase',
 )
 
@@ -35,7 +38,7 @@ class AggregateModelTestExportsTestCase(SimpleTestCase):
     it wildcard-imports, so ``from netbox_routing.tests.test_models import *`` (used for
     test discovery) cannot silently drop one — e.g. ISISSettingModelTestCase."""
 
-    SUBMODULES = ('community', 'eigrp', 'isis', 'ospf', 'static')
+    SUBMODULES = ('community', 'eigrp', 'isis', 'ospf', 'redistribution', 'static')
 
     def test_all_submodule_testcases_reexported(self):
         import importlib

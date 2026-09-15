@@ -63,7 +63,7 @@ class OSPFInstanceTestCase(
             'name': 'Instance X',
             'device': devices[1].pk,
             'router_id': '4.4.4.4',
-            'process_id': 4,
+            'process_id': '4',
             'vrf': vrf.pk,
         }
 

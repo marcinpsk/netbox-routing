@@ -1,5 +1,6 @@
 import netaddr
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext as _
@@ -7,7 +8,7 @@ from django.utils.translation import gettext as _
 from netbox.models import PrimaryModel
 
 from netbox_routing import choices
-from netbox_routing.choices.ospf import OSPFAreaTypeChoices
+from netbox_routing.choices.ospf import OSPFAreaTypeChoices, OSPFNetworkTypeChoices
 from netbox_routing.fields.ip import IPAddressField
 
 __all__ = (
@@ -20,7 +21,7 @@ __all__ = (
 class OSPFInstance(PrimaryModel):
     name = models.CharField(max_length=100)
     router_id = IPAddressField(verbose_name=_('Router ID'))
-    process_id = models.IntegerField(verbose_name=_('Process ID'))
+    process_id = models.CharField(max_length=64, verbose_name=_('Process ID'))
     device = models.ForeignKey(
         to='dcim.Device',
         related_name='ospf_instances',
@@ -47,8 +48,10 @@ class OSPFInstance(PrimaryModel):
             models.UniqueConstraint(
                 fields=('device', 'name'),
                 name='%(app_label)s_%(class)s_unique_device_name',
-                violation_error_message="""Name must be unique per device.
-                Only a single empty name is permitted per device""",
+                violation_error_message=(
+                    'Name must be unique per device. '
+                    'Only a single empty name is permitted per device.'
+                ),
                 nulls_distinct=False,
             ),
         )
@@ -125,6 +128,19 @@ class OSPFInterface(PrimaryModel):
     passive = models.BooleanField(verbose_name='Passive', blank=True, null=True)
     priority = models.IntegerField(blank=True, null=True)
     bfd = models.BooleanField(blank=True, null=True, verbose_name='BFD')
+    cost = models.IntegerField(
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(1), MaxValueValidator(65535)],
+        verbose_name=_('Cost'),
+    )
+    network_type = models.CharField(
+        max_length=50,
+        choices=OSPFNetworkTypeChoices,
+        blank=True,
+        null=True,
+        verbose_name=_('Network Type'),
+    )
     authentication = models.CharField(
         max_length=50, choices=choices.AuthenticationChoices, blank=True, null=True
     )
@@ -137,6 +153,8 @@ class OSPFInterface(PrimaryModel):
         'passive',
         'priority',
         'bfd',
+        'cost',
+        'network_type',
         'authentication',
         'passphrase',
     )

@@ -11,12 +11,17 @@ from netbox_routing.forms.model_objects.ospf import *
 from netbox_routing.forms.model_objects.isis import *
 from netbox_routing.forms.model_objects.bgp import *
 from netbox_routing.forms.model_objects.static import StaticRouteForm
+from netbox_routing.forms.model_objects.redistribution import RedistributionForm
 from netbox_routing.forms.model_objects.eigrp import *
 
 __all__ = (
     # Static Routes
     'StaticRouteForm',
     'StaticRouteFilterForm',
+    # Redistribution
+    'RedistributionForm',
+    'RedistributionFilterForm',
+    'RedistributionBulkEditForm',
     # OSPF
     'OSPFAreaForm',
     'OSPFAreaBulkEditForm',

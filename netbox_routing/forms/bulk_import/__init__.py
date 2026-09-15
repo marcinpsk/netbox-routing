@@ -9,6 +9,8 @@ __all__ = (
     'CommunityImportForm',
     'CommunityListImportForm',
     'CommunityListEntryImportForm',
+    # Extended Community
+    # Large Community
     # EIGRP
     'EIGRPRouterImportForm',
     'EIGRPAddressFamilyImportForm',

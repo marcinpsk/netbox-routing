@@ -1,6 +1,6 @@
 from netbox.api.routers import NetBoxRouter
 from .views import *
-from .views.objects import CustomPrefixViewSet
+from .views.objects import CustomPrefixViewSet, RouteMapEntrySetCommunityViewSet
 
 router = NetBoxRouter()
 router.register('routes/static', StaticRouteViewSet)
@@ -14,6 +14,7 @@ router.register('bgp/address-family', BGPAddressFamilyViewSet)
 router.register('bgp/peer', BGPPeerViewSet)
 router.register('bgp/peer-address-family', BGPPeerAddressFamilyViewSet)
 router.register('bfd/profile', BFDProfileViewSet)
+router.register('bfd/interface', BFDInterfaceViewSet)
 router.register('ospf/instance', OSPFInstanceViewSet)
 router.register('ospf/area', OSPFAreaViewSet)
 router.register('ospf/interface', OSPFInterfaceViewSet)
@@ -35,9 +36,11 @@ router.register('objects/prefix-list', PrefixListViewSet)
 router.register('objects/prefix-list-entry', PrefixListEntryViewSet)
 router.register('objects/route-map', RouteMapViewSet)
 router.register('objects/route-map-entry', RouteMapEntryViewSet)
+router.register('objects/route-map-set-community', RouteMapEntrySetCommunityViewSet)
 router.register('objects/as-path', ASPathViewSet)
 router.register('objects/as-path-entry', ASPathEntryViewSet)
 router.register('objects/community-list', CommunityListViewSet)
 router.register('objects/community-list-entry', CommunityListEntryViewSet)
 router.register('objects/community', CommunityViewSet)
+router.register('redistribution', RedistributionViewSet)
 urlpatterns = router.urls

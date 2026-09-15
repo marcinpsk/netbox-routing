@@ -2,6 +2,9 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.test import TestCase
 
+from dcim.models import Interface
+from utilities.testing import create_test_device
+
 from netbox_routing.models.bgp import *
 from netbox_routing.tests.base import *
 from netbox_routing.tests.bgp.base import *
@@ -36,6 +39,39 @@ class BGPRouterTestCase(ASNMixin, TestCase):
         )
         instance.full_clean()
         instance.save()
+
+    def test_router_id_requires_ipv4_or_blank(self):
+        router = self.model(
+            name='IPv6 Router ID',
+            asn=self.asn,
+            router_id='2001:db8::1',
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            router.full_clean()
+
+        self.assertIn('router_id', context.exception.message_dict)
+
+        for index, router_id in enumerate(('192.0.2.1', None, '')):
+            with self.subTest(router_id=router_id):
+                router = self.model(
+                    name=f'Valid Router ID {index}',
+                    asn=self.asn,
+                    router_id=router_id,
+                )
+                router.full_clean()
+
+    def test_invalid_router_id_reports_validation_error(self):
+        router = self.model(
+            name='Invalid Router ID',
+            asn=self.asn,
+            router_id='invalid',
+        )
+
+        with self.assertRaises(ValidationError) as context:
+            router.full_clean()
+
+        self.assertIn('router_id', context.exception.message_dict)
 
 
 class BGPScopeTestCase(BGPRouterMixin, VRFMixin, TestCase):
@@ -160,6 +196,28 @@ class BGPPeerTestCase(
         self.assertIsInstance(instance, self.model)
         self.assertEqual(instance.scope, self.scope)
         self.assertEqual(instance.peer, self.peer_address)
+
+    def test_update_source_interface(self):
+        """update_source holds a dcim.Interface (IOS / IOS-XR update-source)
+        independently of the IPAddress source (Junos / Nokia local-address)."""
+        device = create_test_device(name='Test Update-Source Device')
+        loopback = Interface.objects.create(
+            device=device, name='Loopback0', type='virtual'
+        )
+        instance = self.model(
+            name='Update-Source Peer',
+            scope=self.scope,
+            peer=self.peer_address,
+            source=self.source_address,
+            update_source=loopback,
+        )
+        instance.full_clean()
+        instance.save()
+
+        instance.refresh_from_db()
+        self.assertEqual(instance.source, self.source_address)
+        self.assertEqual(instance.update_source, loopback)
+        self.assertEqual(instance.update_source.name, 'Loopback0')
 
     def test_unique_together(self):
         instance = self.model(
@@ -371,3 +429,31 @@ class BFDProfileTestCase(
             instance.full_clean()
         with self.assertRaises(IntegrityError):
             instance.save()
+
+
+class BGPAddressFamilyChoicesTestCase(TestCase):
+    """Guard the AFI choice vocabulary the NSO pipeline round-trips through this model."""
+
+    def test_labeled_unicast_are_distinct_choices(self):
+        # BGP-LU is a different family than plain unicast (IOS-XR/Junos/Nokia all model it
+        # separately); the sync pipeline must be able to store it without folding.
+        from netbox_routing.choices.bgp import BGPAddressFamilyChoices
+
+        values = dict(BGPAddressFamilyChoices.CHOICES)
+        self.assertIn('ipv4-labeled-unicast', values)
+        self.assertIn('ipv6-labeled-unicast', values)
+
+    def test_every_declared_constant_is_a_choice(self):
+        # Regression guard: the VPNv4-Multicast row accidentally reused the VPNV4_UNICAST
+        # constant, so 'vpnv4-multicast' was declared but never selectable.
+        from netbox_routing.choices.bgp import BGPAddressFamilyChoices as C
+
+        values = {v for v, _label in C.CHOICES}
+        declared = {
+            getattr(C, name)
+            for name in dir(C)
+            if name.isupper()
+            and name != 'CHOICES'
+            and isinstance(getattr(C, name), str)
+        }
+        self.assertLessEqual(declared, values)

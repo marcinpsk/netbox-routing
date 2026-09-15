@@ -15,6 +15,7 @@ __all__ = (
     'BGPPolicyTemplateTable',
     'BGPSessionTemplateTable',
     'BFDProfileTable',
+    'BFDInterfaceTable',
 )
 
 from tenancy.tables import TenancyColumnsMixin
@@ -169,6 +170,7 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
     scope = tables.Column(linkify=True, verbose_name=_('Scope'))
     peer = tables.Column(linkify=True, verbose_name=_('Peer Address'))
     source = tables.Column(linkify=True, verbose_name=_('Source Address'))
+    update_source = tables.Column(linkify=True, verbose_name=_('Update Source'))
     peer_group = tables.Column(linkify=True, verbose_name=_('Peer Group'))
     peer_session = tables.Column(linkify=True, verbose_name=_('Peer Session'))
     remote_as = tables.Column(linkify=True, verbose_name=_('Remote AS'))
@@ -183,12 +185,14 @@ class BGPPeerTable(TenancyColumnsMixin, NetBoxTable):
             'scope',
             'peer',
             'source',
+            'update_source',
             'peer_group',
             'peer_session',
             'remote_as',
             'status',
             'local_as',
             'bfd',
+            'bfd_enabled',
             'password',
             'tenant_group',
             'tenant',
@@ -281,4 +285,34 @@ class BFDProfileTable(TenancyColumnsMixin, NetBoxTable):
             'pk',
             'id',
             'name',
+        )
+
+
+class BFDInterfaceTable(NetBoxTable):
+    interface = tables.Column(linkify=True, verbose_name=_('Interface'))
+    device = tables.Column(
+        verbose_name=_('Device'), linkify=True, accessor='interface__device'
+    )
+    bfd_profile = tables.Column(linkify=True, verbose_name=_('BFD Profile'))
+    micro_bfd = columns.BooleanColumn(verbose_name=_('Micro-BFD'))
+    enabled = columns.BooleanColumn(verbose_name=_('Enabled'))
+
+    class Meta(NetBoxTable.Meta):
+        model = BFDInterface
+        fields = (
+            'pk',
+            'id',
+            'interface',
+            'device',
+            'bfd_profile',
+            'micro_bfd',
+            'enabled',
+        )
+        default_columns = (
+            'pk',
+            'id',
+            'interface',
+            'device',
+            'bfd_profile',
+            'micro_bfd',
         )

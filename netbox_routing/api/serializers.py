@@ -1,5 +1,6 @@
 from netbox_routing.api._serializers.objects import *
 from netbox_routing.api._serializers.community import *
+from netbox_routing.api._serializers.redistribution import RedistributionSerializer
 from netbox_routing.api._serializers.static import StaticRouteSerializer
 from netbox_routing.api._serializers.bgp import *
 from netbox_routing.api._serializers.isis import *
@@ -10,6 +11,7 @@ __all__ = (
     'CommunitySerializer',
     'CommunityListSerializer',
     'CommunityListEntrySerializer',
+    'RedistributionSerializer',
     'StaticRouteSerializer',
     'OSPFInstanceSerializer',
     'OSPFAreaSerializer',
