@@ -1,5 +1,6 @@
 import netaddr
 from utilities.testing import ViewTestCases
+from dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from ipam.models import IPAddress, VRF, ASN
 
 from netbox_routing.models.bgp import *
@@ -109,14 +110,15 @@ class BGPAddressFamilyTestCase(
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        items = []
-        for seq in ('ipv4-unicast', 'ipv6-unicast', 'vpnv4-unicast', 'vpnv6-unicast'):
-            items.append(
-                cls.model(
-                    scope=cls.scope,
-                    address_family=seq,
-                ),
+        items = [
+            cls.model(scope=cls.scope, address_family=seq)
+            for seq in (
+                'ipv4-unicast',
+                'ipv6-unicast',
+                'vpnv4-unicast',
+                'vpnv6-unicast',
             )
+        ]
         cls.model.objects.bulk_create(items)
 
         cls.form_data = {
@@ -164,10 +166,27 @@ class BGPPeerTestCase(
         cls.model.objects.bulk_create(items)
 
         peer = IPAddress.objects.create(address=netaddr.IPNetwork('10.0.0.7/24'))
+        # source (an IPAddress, Junos/Nokia local-address) + update_source (a dcim.Interface,
+        # IOS/IOS-XR update-source) exercise the two session-source form fields.
+        source_ip = IPAddress.objects.create(address=netaddr.IPNetwork('10.0.0.100/32'))
+        mfg = Manufacturer.objects.create(name='BGP Peer Mfg', slug='bgp-peer-mfg')
+        dtype = DeviceType.objects.create(
+            manufacturer=mfg, model='BGP Peer DT', slug='bgp-peer-dt'
+        )
+        drole = DeviceRole.objects.create(name='BGP Peer Role', slug='bgp-peer-role')
+        dsite = Site.objects.create(name='BGP Peer Site', slug='bgp-peer-site')
+        device = Device.objects.create(
+            name='bgp-peer-dev', device_type=dtype, role=drole, site=dsite
+        )
+        update_iface = Interface.objects.create(
+            device=device, name='Loopback0', type='virtual'
+        )
         cls.form_data = {
             'name': 'BGP Peer: 10.0.0.7/24',
             'scope': cls.scope.pk,
             'peer': peer.pk,
+            'source': source_ip.pk,
+            'update_source': update_iface.pk,
         }
 
 
@@ -299,16 +318,12 @@ class BFDProfileTestCase(
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        profiles = []
-        for i in range(1, 4):
-            profiles.append(
-                BFDProfile(
-                    name=f'Test BFD Profile {i}',
-                    min_rx_int=60,
-                    min_tx_int=60,
-                    multiplier=3,
-                )
+        profiles = [
+            BFDProfile(
+                name=f'Test BFD Profile {i}', min_rx_int=60, min_tx_int=60, multiplier=3
             )
+            for i in range(1, 4)
+        ]
         BFDProfile.objects.bulk_create(profiles)
 
         cls.form_data = {

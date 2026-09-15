@@ -27,6 +27,7 @@ def _iter_model_forms():
         'isis',
         'objects',
         'ospf',
+        'redistribution',
         'static',
     ):
         submodule = getattr(model_objects, submodule_name, None)

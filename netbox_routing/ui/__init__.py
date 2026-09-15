@@ -27,6 +27,7 @@ __all__ = (
     'EIGRPInterfacePanel',
     'StaticRoutePanel',
     'StaticRouteRoutePanel',
+    'RedistributionPanel',
     'BFDProfilePanel',
     'BFDProfileSessionPanel',
     'CustomPrefixPanel',

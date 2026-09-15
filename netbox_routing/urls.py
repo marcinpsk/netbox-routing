@@ -11,6 +11,15 @@ urlpatterns = [
         'routes/static/', include(get_model_urls(app_name, 'staticroute', detail=False))
     ),
     path('routes/static/<int:pk>/', include(get_model_urls(app_name, 'staticroute'))),
+    # Redistribution
+    path(
+        'redistribution/',
+        include(get_model_urls(app_name, 'redistribution', detail=False)),
+    ),
+    path(
+        'redistribution/<int:pk>/',
+        include(get_model_urls(app_name, 'redistribution')),
+    ),
     # OSPF
     path(
         'ospf/instance/',
@@ -110,6 +119,11 @@ urlpatterns = [
     # BFD
     path('bfd/profile/', include(get_model_urls(app_name, 'bfdprofile', detail=False))),
     path('bfd/profile/<int:pk>/', include(get_model_urls(app_name, 'bfdprofile'))),
+    path(
+        'bfd/interface/',
+        include(get_model_urls(app_name, 'bfdinterface', detail=False)),
+    ),
+    path('bfd/interface/<int:pk>/', include(get_model_urls(app_name, 'bfdinterface'))),
     # BGP
     path('bgp/setting/', include(get_model_urls(app_name, 'bgpsetting', detail=False))),
     path('bgp/setting/<int:pk>/', include(get_model_urls(app_name, 'bgpsetting'))),

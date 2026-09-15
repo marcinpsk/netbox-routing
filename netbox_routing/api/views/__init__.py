@@ -14,6 +14,7 @@ from .isis import (
 )
 from .bgp import *
 from .objects import *
+from .redistribution import *
 from .eigrp import (
     EIGRPRouterViewSet,
     EIGRPAddressFamilyViewSet,
@@ -33,6 +34,7 @@ __all__ = (
     'BGPSessionTemplateViewSet',
     'BGPPeerAddressFamilyViewSet',
     'BFDProfileViewSet',
+    'BFDInterfaceViewSet',
     'EIGRPRouterViewSet',
     'EIGRPAddressFamilyViewSet',
     'EIGRPNetworkViewSet',
@@ -53,6 +55,7 @@ __all__ = (
     'PrefixListEntryViewSet',
     'RouteMapViewSet',
     'RouteMapEntryViewSet',
+    'RedistributionViewSet',
     'CommunityViewSet',
     'CommunityListViewSet',
     'CommunityListEntryViewSet',

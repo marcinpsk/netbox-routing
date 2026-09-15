@@ -15,7 +15,7 @@ __all__ = (
 
 class CommunityListForm(TenancyForm, PrimaryModelForm):
     fieldsets = (
-        FieldSet('name', 'description'),
+        FieldSet('name', 'invert_match', 'description'),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -23,6 +23,7 @@ class CommunityListForm(TenancyForm, PrimaryModelForm):
         model = CommunityList
         fields = [
             'name',
+            'invert_match',
             'tenant_group',
             'tenant',
             'description',

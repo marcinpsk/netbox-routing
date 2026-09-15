@@ -8,6 +8,7 @@ __all__ = (
     'PrefixListEntryViewSet',
     'RouteMapViewSet',
     'RouteMapEntryViewSet',
+    'RouteMapEntrySetCommunityViewSet',
     'ASPathViewSet',
     'ASPathEntryViewSet',
 )
@@ -41,6 +42,14 @@ class RouteMapEntryViewSet(NetBoxModelViewSet):
     queryset = RouteMapEntry.objects.all()
     serializer_class = RouteMapEntrySerializer
     filterset_class = filtersets.RouteMapEntryFilterSet
+
+
+class RouteMapEntrySetCommunityViewSet(NetBoxModelViewSet):
+    queryset = RouteMapEntrySetCommunity.objects.prefetch_related(
+        'route_map_entry', 'community_list', 'communities'
+    )
+    serializer_class = RouteMapEntrySetCommunitySerializer
+    filterset_class = filtersets.RouteMapEntrySetCommunityFilterSet
 
 
 class ASPathViewSet(NetBoxModelViewSet):

@@ -71,9 +71,12 @@ class CommunityTestCase(TestCase):
         self.assertTrue(form.save())
 
     def test_form_invalid_community(self):
+        # The relaxed universal validator allows letters (keywords like target:/no-export) and
+        # regex metachars, so it only rejects truly impossible members — whitespace / stray
+        # punctuation a device never emits.
         form = CommunityForm(
             data={
-                'community': 'g443gf',
+                'community': 'bad value!',
                 'status': 'active',
             }
         )
