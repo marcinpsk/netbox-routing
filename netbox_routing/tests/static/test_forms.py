@@ -1,13 +1,17 @@
 import contextlib
 
-from django.db import connection, transaction
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
 from dcim.models import Device
 from utilities.testing import create_test_device
 
 from netbox_routing.forms import *
-from netbox_routing.helpers.static import shared_device_triple_errors
+from netbox_routing.helpers.static import (
+    STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT,
+    shared_device_triple_errors,
+)
 from netbox_routing.models import StaticRoute
 
 __all__ = (
@@ -98,6 +102,38 @@ class StaticRouteRefusalTestCase(TestCase):
         route = StaticRoute.objects.create(**fields)
         route.devices.set(devices if devices is not None else [self.device])
         return route
+
+    def _database_clash_error(self):
+        clash = self._route()
+        refused = self._route(devices=[])
+        with self.assertRaises(IntegrityError) as raised, transaction.atomic():
+            refused.devices.add(self.device)
+
+        self.assertEqual(
+            raised.exception.__cause__.diag.constraint_name,
+            STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT,
+        )
+        clash.devices.clear()
+        self.assertFalse(StaticRoute.objects.filter(devices=self.device).exists())
+        return raised.exception
+
+    def test_database_refusal_without_a_visible_clash_adds_a_field_error(self):
+        trigger_error = self._database_clash_error()
+
+        class TriggerRefusalStaticRouteForm(StaticRouteForm):
+            def _save_m2m(self):
+                raise trigger_error
+
+        form = TriggerRefusalStaticRouteForm(data=self._data())
+        self.assertTrue(form.is_valid(), form.errors)
+
+        with self.assertRaises(ValidationError) as raised:
+            form.save()
+
+        self.assertEqual(
+            raised.exception.message_dict,
+            {'prefix': ['A device cannot hold the same static route twice.']},
+        )
 
     # ── (1) a second route with an identical triple on a shared device ──────────
 

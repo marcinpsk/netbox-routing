@@ -1,11 +1,15 @@
+from django.db import IntegrityError, transaction
 from django.urls import reverse
 from netaddr.ip import IPAddress
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.views import exception_handler
 
 from ipam.models import VRF
 from utilities.testing import APITestCase, APIViewTestCases, create_test_device
 
 from netbox_routing.api._serializers.static import StaticRouteSerializer
+from netbox_routing.helpers.static import STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT
 from netbox_routing.models import StaticRoute
 from netbox_routing.tests.base import IPAddressFieldMixin
 
@@ -111,6 +115,40 @@ class StaticRouteRefusalAPITestCase(APITestCase):
         }
         payload.update(overrides)
         return payload
+
+    def _database_clash_error(self):
+        clash = self._route()
+        refused = self._route(devices=[])
+        with self.assertRaises(IntegrityError) as raised, transaction.atomic():
+            refused.devices.add(self.device)
+
+        self.assertEqual(
+            raised.exception.__cause__.diag.constraint_name,
+            STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT,
+        )
+        clash.devices.clear()
+        self.assertFalse(StaticRoute.objects.filter(devices=self.device).exists())
+        return raised.exception
+
+    def test_database_refusal_without_a_visible_clash_returns_a_field_error(self):
+        trigger_error = self._database_clash_error()
+
+        class TriggerRefusalStaticRouteSerializer(StaticRouteSerializer):
+            def _update_devices(self, instance, devices):
+                raise trigger_error
+
+        serializer = TriggerRefusalStaticRouteSerializer(data=self._payload())
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        with self.assertRaises(ValidationError) as raised:
+            serializer.save()
+        response = exception_handler(raised.exception, {})
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data,
+            {'prefix': ['A device cannot hold the same static route twice.']},
+        )
 
     def test_create_with_a_duplicate_triple_on_a_shared_device_is_refused(self):
         self.add_permissions('netbox_routing.add_staticroute')

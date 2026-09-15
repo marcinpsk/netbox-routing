@@ -4,6 +4,7 @@ from django.utils.translation import gettext as _
 
 __all__ = (
     'STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT',
+    'database_clash_errors',
     'interface_only_conversion_errors',
     'is_static_route_device_triple_violation',
     'lock_static_route_devices',
@@ -16,6 +17,14 @@ __all__ = (
 STATIC_ROUTE_DEVICE_TRIPLE_CONSTRAINT = (
     'netbox_routing_staticroute_device_triple_unique'
 )
+
+
+def database_clash_errors(stored, vrf, prefix, next_hop, devices):
+    """Return a field error even when the trigger's conflict is no longer visible."""
+    errors = shared_device_triple_errors(stored, vrf, prefix, next_hop, devices)
+    if errors:
+        return errors
+    return {'prefix': _('A device cannot hold the same static route twice.')}
 
 
 def _blank(value):

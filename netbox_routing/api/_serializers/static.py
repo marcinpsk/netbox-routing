@@ -8,6 +8,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 
 from netbox_routing.api.field_serializers import IPAddressField
 from netbox_routing.helpers.static import (
+    database_clash_errors,
     interface_only_conversion_errors,
     is_static_route_device_triple_violation,
     lock_static_route_devices,
@@ -210,7 +211,7 @@ class StaticRouteSerializer(NetBoxModelSerializer):
         error_devices = list(devices) if devices is not None else []
         if stored is not None:
             error_devices.extend(stored.devices.all())
-        errors = shared_device_triple_errors(
+        errors = database_clash_errors(
             stored,
             self._pending(validated_data, 'vrf'),
             self._pending(validated_data, 'prefix'),
