@@ -4,6 +4,7 @@ from django.utils.translation import gettext as _
 
 __all__ = (
     'interface_only_conversion_errors',
+    'lock_static_route_devices',
     'shared_device_triple_errors',
     'stored_route',
     'triple_key',
@@ -24,6 +25,19 @@ def _device_ids(devices):
     return [getattr(device, 'pk', device) for device in devices or ()]
 
 
+def lock_static_route_devices(devices):
+    """Lock the devices affected by a static-route write in a stable order."""
+    from dcim.models import Device
+
+    device_ids = _device_ids(devices)
+    list(
+        Device.objects.select_for_update()
+        .filter(pk__in=device_ids)
+        .order_by('pk')
+        .values_list('pk', flat=True)
+    )
+
+
 def triple_key(vrf, prefix, next_hop):
     """The route's identity grain, comparable across model instances and raw values."""
     return (
@@ -33,7 +47,7 @@ def triple_key(vrf, prefix, next_hop):
     )
 
 
-def stored_route(instance):
+def stored_route(instance, *, for_update=False):
     """The route as persisted, never the pending state.
 
     NetBox's ValidatedModelSerializer.validate() assigns the incoming values onto the
@@ -45,7 +59,10 @@ def stored_route(instance):
 
     if instance is None or not instance.pk:
         return None
-    return StaticRoute.objects.filter(pk=instance.pk).first()
+    routes = StaticRoute.objects.filter(pk=instance.pk)
+    if for_update:
+        routes = routes.select_for_update(of=('self',))
+    return routes.first()
 
 
 def _devices_this_write_lands_on(stored, vrf, prefix, next_hop, device_ids):

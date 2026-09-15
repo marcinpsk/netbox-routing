@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 from dcim.models import Device
@@ -6,6 +7,7 @@ from ipam.models import VRF
 from netbox.forms import PrimaryModelForm
 from netbox_routing.helpers.static import (
     interface_only_conversion_errors,
+    lock_static_route_devices,
     shared_device_triple_errors,
     stored_route,
 )
@@ -108,6 +110,23 @@ class StaticRouteForm(PrimaryModelForm):
         return cleaned_data
 
     def save(self, *args, **kwargs):
-        instance = super().save(*args, **kwargs)
-        instance.devices.set(self.cleaned_data['devices'])
-        return instance
+        devices = self.cleaned_data['devices']
+        with transaction.atomic():
+            stored = stored_route(self.instance, for_update=True)
+            lock_devices = list(devices)
+            if stored is not None:
+                lock_devices.extend(stored.devices.all())
+            lock_static_route_devices(lock_devices)
+            errors = shared_device_triple_errors(
+                stored,
+                self.cleaned_data.get('vrf'),
+                self.cleaned_data.get('prefix'),
+                self.cleaned_data.get('next_hop'),
+                devices,
+            )
+            if errors:
+                raise ValidationError(errors)
+
+            instance = super().save(*args, **kwargs)
+            instance.devices.set(devices)
+            return instance

@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
@@ -8,6 +9,7 @@ from netbox.api.serializers import NetBoxModelSerializer
 from netbox_routing.api.field_serializers import IPAddressField
 from netbox_routing.helpers.static import (
     interface_only_conversion_errors,
+    lock_static_route_devices,
     shared_device_triple_errors,
     stored_route,
     triple_key,
@@ -59,6 +61,16 @@ class StaticRouteListSerializer(serializers.ListSerializer):
             raise serializers.ValidationError(errors)
 
         return attrs
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            devices = [
+                device
+                for item in validated_data
+                for device in item.get('devices') or ()
+            ]
+            lock_static_route_devices(devices)
+            return super().create(validated_data)
 
 
 class StaticRouteSerializer(NetBoxModelSerializer):
@@ -131,25 +143,46 @@ class StaticRouteSerializer(NetBoxModelSerializer):
 
         return attrs
 
-    def _pending(self, attrs, field):
+    def _pending(self, attrs, field, instance=None):
         """The value this write will leave on the row — a PATCH may not carry it at all."""
         if field in attrs:
             return attrs[field]
-        return (
-            getattr(self.instance, field, None) if self.instance is not None else None
-        )
+        if instance is None:
+            instance = self.instance
+        return getattr(instance, field, None) if instance is not None else None
 
     def create(self, validated_data):
         devices = validated_data.pop('devices', None)
-        instance = super().create(validated_data)
+        with transaction.atomic():
+            lock_static_route_devices(devices)
+            self._validate_locked_write(validated_data, devices)
+            instance = super().create(validated_data)
 
-        return self._update_devices(instance, devices)
+            return self._update_devices(instance, devices)
 
     def update(self, instance, validated_data):
         devices = validated_data.pop('devices', None)
-        instance = super().update(instance, validated_data)
+        with transaction.atomic():
+            stored = stored_route(instance, for_update=True)
+            instance.refresh_from_db()
+            stored_devices = list(stored.devices.all())
+            affected_devices = devices if devices is not None else stored_devices
+            lock_static_route_devices([*stored_devices, *affected_devices])
+            self._validate_locked_write(validated_data, affected_devices, stored)
+            instance = super().update(instance, validated_data)
 
-        return self._update_devices(instance, devices)
+            return self._update_devices(instance, devices)
+
+    def _validate_locked_write(self, validated_data, devices, stored=None):
+        errors = shared_device_triple_errors(
+            stored,
+            self._pending(validated_data, 'vrf', stored),
+            self._pending(validated_data, 'prefix', stored),
+            self._pending(validated_data, 'next_hop', stored),
+            devices,
+        )
+        if errors:
+            raise serializers.ValidationError(errors)
 
     def _update_devices(self, instance: StaticRoute, devices: object) -> StaticRoute:
         if devices:
