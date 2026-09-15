@@ -49,7 +49,7 @@ class StaticRouteListSerializer(serializers.ListSerializer):
                                 'route to one of the same devices. A device cannot hold '
                                 'the same route twice.'
                             )
-                            % {'prior': prior_index}
+                            % {'prior': prior_index + 1}
                         ]
                     }
                     break

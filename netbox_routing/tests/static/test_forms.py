@@ -6,6 +6,7 @@ from dcim.models import Device
 from utilities.testing import create_test_device
 
 from netbox_routing.forms import *
+from netbox_routing.helpers.static import shared_device_triple_errors
 from netbox_routing.models import StaticRoute
 
 __all__ = (
@@ -119,6 +120,15 @@ class StaticRouteRefusalTestCase(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('prefix', form.errors)
+
+    def test_blank_string_next_hop_matches_a_null_stored_next_hop(self):
+        self._route(next_hop=None, interface_next_hop='GigabitEthernet0/0')
+
+        errors = shared_device_triple_errors(
+            None, None, '10.0.0.0/24', '', [self.device]
+        )
+
+        self.assertIn('prefix', errors)
 
     # ── (2) an edit landing one route on another route's live triple ────────────
 

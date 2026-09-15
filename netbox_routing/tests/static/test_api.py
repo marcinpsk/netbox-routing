@@ -5,6 +5,7 @@ from rest_framework import status
 from ipam.models import VRF
 from utilities.testing import APITestCase, APIViewTestCases, create_test_device
 
+from netbox_routing.api._serializers.static import StaticRouteSerializer
 from netbox_routing.models import StaticRoute
 from netbox_routing.tests.base import IPAddressFieldMixin
 
@@ -162,9 +163,22 @@ class StaticRouteRefusalAPITestCase(APITestCase):
         self.add_permissions('netbox_routing.add_staticroute')
 
         url = reverse('plugins-api:netbox_routing-api:staticroute-list')
+        payload = {
+            'prefix': '198.18.0.0/24',
+            'next_hop': '192.0.2.1',
+        }
+        request_data = [
+            self._payload(name='First', **payload),
+            self._payload(name='Second', **payload),
+        ]
+        serializer = StaticRouteSerializer(data=request_data, many=True)
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('Entry 1 of this request', str(serializer.errors[1]['prefix'][0]))
+
         response = self.client.post(
             url,
-            [self._payload(name='First'), self._payload(name='Second')],
+            request_data,
             format='json',
             **self.header,
         )

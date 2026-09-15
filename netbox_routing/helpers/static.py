@@ -79,6 +79,7 @@ def shared_device_triple_errors(stored, vrf, prefix, next_hop, devices):
     """
     from netbox_routing.models import StaticRoute
 
+    next_hop = None if _blank(next_hop) else next_hop
     device_ids = _device_ids(devices)
     if _blank(prefix) or not device_ids:
         return {}
