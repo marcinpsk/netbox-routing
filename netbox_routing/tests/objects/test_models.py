@@ -49,6 +49,14 @@ class ASPathTestCase(TestCase):
         with self.assertRaises(IntegrityError):
             asp.save()
 
+    def test_case_variant_names_are_distinct(self):
+        # Device policy names are case-sensitive, so case variants are separate objects.
+        for name in ('accept-all', 'ACCEPT-ALL'):
+            obj = ASPath(name=name)
+            obj.full_clean()
+            obj.save()
+        self.assertEqual(ASPath.objects.filter(name__iexact='accept-all').count(), 2)
+
 
 class ASPathEntryTestCase(TestCase):
 
@@ -111,6 +119,14 @@ class PrefixListTestCase(TestCase):
             pl.full_clean()
         with self.assertRaises(IntegrityError):
             pl.save()
+
+    def test_case_variant_names_are_distinct(self):
+        # Device policy names are case-sensitive, so case variants are separate objects.
+        for name in ('accept-all', 'ACCEPT-ALL'):
+            obj = PrefixList(name=name)
+            obj.full_clean()
+            obj.save()
+        self.assertEqual(PrefixList.objects.filter(name__iexact='accept-all').count(), 2)
 
 
 class PrefixListEntryTestCase(TestCase):
@@ -184,6 +200,14 @@ class RouteMapTestCase(TestCase):
             rm.full_clean()
         with self.assertRaises(IntegrityError):
             rm.save()
+
+    def test_case_variant_names_are_distinct(self):
+        # Device policy names are case-sensitive, so case variants are separate objects.
+        for name in ('accept-all', 'ACCEPT-ALL'):
+            obj = RouteMap(name=name)
+            obj.full_clean()
+            obj.save()
+        self.assertEqual(RouteMap.objects.filter(name__iexact='accept-all').count(), 2)
 
     def test_default_action(self):
         # Policy-level default-action (vendor default when no entry matches); blank = none.

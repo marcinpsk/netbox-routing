@@ -4,7 +4,6 @@ from django.core.validators import (
     MinValueValidator,
     MaxValueValidator,
 )
-from django.db.models.functions import Lower
 from django.utils.translation import gettext_lazy as _
 from django.urls import reverse
 
@@ -54,7 +53,7 @@ class ASPath(PrimaryModel):
         ]
         constraints = (
             models.UniqueConstraint(
-                Lower('name'),
+                fields=('name',),
                 name='%(app_label)s_%(class)s_unique_name',
                 violation_error_message="Name must be unique.",
             ),
@@ -122,7 +121,7 @@ class PrefixList(PrimaryModel):
         ]
         constraints = (
             models.UniqueConstraint(
-                Lower('name'),
+                fields=('name',),
                 name='%(app_label)s_%(class)s_unique_name',
                 violation_error_message="Name must be unique.",
             ),
@@ -284,7 +283,7 @@ class RouteMap(PrimaryModel):
         ]
         constraints = (
             models.UniqueConstraint(
-                Lower('name'),
+                fields=('name',),
                 name='%(app_label)s_%(class)s_unique_name',
                 violation_error_message="Name must be unique.",
             ),
