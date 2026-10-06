@@ -14,6 +14,7 @@ from .isis import (
 )
 from .objects import *
 from .ospf import OSPFInstanceIndex, OSPFAreaIndex
+from .redistribution import RedistributionIndex
 from .static import StaticRouteIndex
 
 __all__ = (
@@ -47,5 +48,6 @@ __all__ = (
     'PrefixListEntryIndex',
     'RouteMapIndex',
     'RouteMapEntryIndex',
+    'RedistributionIndex',
     'StaticRouteIndex',
 )

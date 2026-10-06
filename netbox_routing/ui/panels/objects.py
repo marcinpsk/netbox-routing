@@ -53,6 +53,7 @@ class PrefixListEntryPanel(panels.ObjectAttributesPanel):
 
 class RouteMapPanel(panels.ObjectAttributesPanel):
     name = attrs.TextAttr('name', label=_('Name'))
+    default_action = attrs.ChoiceAttr('default_action', label=_('Default Action'))
     description = attrs.TextAttr('description', label=_('Description'))
 
 
@@ -65,11 +66,12 @@ class RouteMapEntryPanel(panels.ObjectAttributesPanel):
 
 
 class RouteMapEntryMatchPanel(panels.ObjectAttributesPanel):
+    match_afi = attrs.TextAttr('match_afi_display', label=_('Address Family'))
     match_prefix_list = attrs.RelatedObjectListAttr(
         'match_prefix_list', linkify=True, label=_('Prefix List')
     )
     match_aspath = attrs.RelatedObjectListAttr(
-        'match_as_path_list', linkify=True, label=_('AS Path List')
+        'match_aspath', linkify=True, label=_('AS Path List')
     )
     match_community_list = attrs.RelatedObjectListAttr(
         'match_community_list', linkify=True, label=_('Community List')
@@ -77,7 +79,15 @@ class RouteMapEntryMatchPanel(panels.ObjectAttributesPanel):
     match_community = attrs.RelatedObjectListAttr(
         'match_community', linkify=True, label=_('Community')
     )
+    call_policy = attrs.RelatedObjectAttr(
+        'call_policy', linkify=True, label=_('Call Policy')
+    )
 
 
 class RouteMapEntrySetPanel(panels.ObjectAttributesPanel):
-    pass
+    set_communities = attrs.RelatedObjectListAttr(
+        'set_communities', label=_('Set Community')
+    )
+    apply_policy = attrs.RelatedObjectAttr(
+        'apply_policy', linkify=True, label=_('Apply Policy')
+    )

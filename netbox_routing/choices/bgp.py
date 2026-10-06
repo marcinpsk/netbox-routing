@@ -102,6 +102,8 @@ class BGPBestPathASPathChoices(ChoiceSet):
 class BGPAddressFamilyChoices(ChoiceSet):
     IPV4_UNICAST = 'ipv4-unicast'
     IPV6_UNICAST = 'ipv6-unicast'
+    IPV4_LABELED_UNICAST = 'ipv4-labeled-unicast'
+    IPV6_LABELED_UNICAST = 'ipv6-labeled-unicast'
     VPNV4_UNICAST = 'vpnv4-unicast'
     VPNV6_UNICAST = 'vpnv6-unicast'
     IPV4_MULTICAST = 'ipv4-multicast'
@@ -121,11 +123,13 @@ class BGPAddressFamilyChoices(ChoiceSet):
     CHOICES = [
         (IPV4_UNICAST, 'IPv4 Unicast'),
         (IPV6_UNICAST, 'IPv6 Unicast'),
+        (IPV4_LABELED_UNICAST, 'IPv4 Labeled Unicast'),
+        (IPV6_LABELED_UNICAST, 'IPv6 Labeled Unicast'),
         (VPNV4_UNICAST, 'VPNv4 Unicast'),
         (VPNV6_UNICAST, 'VPNv6 Unicast'),
         (IPV4_MULTICAST, 'IPv4 Multicast'),
         (IPV6_MULTICAST, 'IPv6 Multicast'),
-        (VPNV4_UNICAST, 'VPNv4 Multicast'),
+        (VPNV4_MULTICAST, 'VPNv4 Multicast'),
         (VPNV6_MULTICAST, 'VPNv6 Multicast'),
         (IPV4_FLOWSPEC, 'IPv4 Flowspec'),
         (IPV6_FLOWSPEC, 'IPv6 Flowspec'),

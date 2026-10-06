@@ -1,5 +1,8 @@
+from django.core.exceptions import ValidationError
+from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 
+from core.signals import clear_events
 from dcim.filtersets import DeviceFilterSet
 from dcim.models import Device
 from dcim.tables import DeviceTable
@@ -25,6 +28,7 @@ from netbox_routing.forms.bulk_import import StaticRouteImportForm
 from netbox_routing.models import StaticRoute
 from netbox_routing.tables.static import StaticRouteTable
 from netbox_routing.ui import *
+from utilities.forms import restrict_form_fields
 
 __all__ = (
     'StaticRouteListView',
@@ -85,6 +89,37 @@ class StaticRouteDevicesView(ObjectChildrenView):
 class StaticRouteEditView(ObjectEditView):
     queryset = StaticRoute.objects.all()
     form = StaticRouteForm
+
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except ValidationError as error:
+            clear_events.send(sender=self)
+            obj = self.get_object(**kwargs)
+            obj = self.alter_object(obj, request, args, kwargs)
+            form_prefix = 'quickadd' if request.GET.get('_quickadd') else None
+            form = self.form(
+                data=request.POST,
+                files=request.FILES,
+                instance=obj,
+                prefix=form_prefix,
+            )
+            restrict_form_fields(form, request.user)
+            form.is_valid()
+            for field in getattr(error, 'error_dict', {}):
+                form.errors.pop(field, None)
+            form.add_error(None, error)
+
+            context = {
+                'model': self.queryset.model,
+                'object': obj,
+                'form': form,
+                'return_url': self.get_return_url(request, obj),
+                **self.get_extra_context(request, obj),
+            }
+            if '_quickadd' in request.POST:
+                return render(request, 'htmx/quick_add.html', context)
+            return render(request, self.template_name, context)
 
 
 @register_model_view(StaticRoute, name='delete')

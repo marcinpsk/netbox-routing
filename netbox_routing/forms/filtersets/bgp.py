@@ -5,6 +5,7 @@ from dcim.models import Device
 from ipam.models import ASN, VRF, IPAddress
 from netbox.forms import NetBoxModelFilterSetForm
 from tenancy.forms import TenancyFilterForm
+from utilities.forms import BOOLEAN_WITH_BLANK_CHOICES
 from utilities.forms.fields import TagFilterField, DynamicModelMultipleChoiceField
 from utilities.forms.rendering import FieldSet
 
@@ -22,6 +23,7 @@ __all__ = (
     'BGPPolicyTemplateFilterForm',
     'BGPSessionTemplateFilterForm',
     'BFDProfileFilterForm',
+    'BFDInterfaceFilterForm',
 )
 
 
@@ -213,5 +215,39 @@ class BFDProfileFilterForm(
             'filter_id',
             'tag',
         ),
+    )
+    tag = TagFilterField(model)
+
+
+class BFDInterfaceFilterForm(NetBoxModelFilterSetForm):
+    model = BFDInterface
+    fieldsets = (
+        FieldSet(
+            'q',
+            'filter_id',
+            'tag',
+        ),
+        FieldSet('device_id', 'bfd_profile_id', 'micro_bfd', 'enabled', name=_('BFD')),
+    )
+    device_id = DynamicModelMultipleChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    bfd_profile_id = DynamicModelMultipleChoiceField(
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        label=_('BFD Profile'),
+    )
+    micro_bfd = forms.NullBooleanField(
+        required=False,
+        label=_('Micro-BFD'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
+    )
+    enabled = forms.NullBooleanField(
+        required=False,
+        label=_('Enabled'),
+        widget=forms.Select(choices=BOOLEAN_WITH_BLANK_CHOICES),
     )
     tag = TagFilterField(model)

@@ -17,6 +17,8 @@ __all__ = (
     'BGPAddressFamilyType',
     'BGPPeerType',
     'BGPPeerAddressFamilyType',
+    'BFDProfileType',
+    'BFDInterfaceType',
     'CommunityType',
     'CommunityListType',
     'CommunityListEntryType',

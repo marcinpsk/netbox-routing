@@ -4,11 +4,12 @@ from django.test import TestCase
 
 from ipam.models import Role
 
-from netbox_routing.choices import ActionChoices
+from netbox_routing.choices import ActionChoices, CommunityKindChoices
 from netbox_routing.models.community import *
 
 __all__ = (
     'CommunityTestCase',
+    'CommunityKindTestCase',
     'CommunityListTestCase',
     'CommunityListEntryTestCase',
 )
@@ -53,16 +54,42 @@ class CommunityTestCase(TestCase):
         self.assertIsInstance(community, Community)
         self.assertEqual(str(community), community_value)
 
-        community_value = '64512:64512:64512:64512'
-        community = Community(
-            community=community_value,
-            status='active',
-            role=role,
-        )
+    def test_universal_forms_accepted(self):
+        """The single universal field stores every device form verbatim — numeric, well-known
+        keyword, typed extended, RFC 8092 large (prefixed and bare), and match-only regex —
+        with NO part cap (the kind is derived by parsing, not constrained by the validator).
+        """
+        role = Role.objects.get(name='Test Role')
+        for value in (
+            '1111:1234',  # standard
+            'target:1111:1234',  # extended (keyword)
+            'large:1111:6370:1234',  # large (prefixed)
+            '64512:64512:64512:64512',  # 4 parts — no longer rejected (cap dropped)
+            'no-export',  # well-known keyword
+            'color:0:128',  # extended
+            '1111:*',  # regex
+            '1111:.*',  # regex
+            '1111:1113.',  # dotted regex
+        ):
+            community = Community(community=value, status='active', role=role)
+            community.full_clean()  # must not raise
+            community.save()
+            self.assertEqual(community.community, value)
+
+    def test_whitespace_rejected(self):
+        """The validator still rejects whitespace — the one thing no device member contains."""
+        role = Role.objects.get(name='Test Role')
+        for value in ('not valid', '1111: 100', ' '):
+            bad = Community(community=value, status='active', role=role)
+            with self.assertRaises(ValidationError):
+                bad.full_clean()
+
+    def test_trailing_newline_rejected(self):
+        role = Role.objects.get(name='Test Role')
+        Community(community='65000:1', status='active', role=role).full_clean()
 
         with self.assertRaises(ValidationError):
-            community.full_clean()
-            community.save()
+            Community(community='65000:1\n', status='active', role=role).full_clean()
 
     def test_str_with_name(self):
         role = Role.objects.get(name='Test Role')
@@ -109,6 +136,67 @@ class CommunityTestCase(TestCase):
             community.full_clean()
         with self.assertRaises(IntegrityError):
             community.save()
+
+
+class CommunityKindTestCase(TestCase):
+    """The kind is derived purely from the community text (no stored column)."""
+
+    # The 9 cnad-test members and their expected derived kinds (the live-verify target).
+    CNAD_TEST = [
+        ('1111:1234', CommunityKindChoices.KIND_STANDARD),
+        ('target:1111:1234', CommunityKindChoices.KIND_EXTENDED),
+        ('large:1111:6370:1234', CommunityKindChoices.KIND_LARGE),
+        ('no-export', CommunityKindChoices.KIND_STANDARD),
+        ('no-advertise', CommunityKindChoices.KIND_STANDARD),
+        ('color:0:128', CommunityKindChoices.KIND_EXTENDED),
+        ('1111:1.3.', CommunityKindChoices.KIND_STANDARD),  # 2-part regex -> standard
+        ('1111:*', CommunityKindChoices.KIND_STANDARD),  # 2-part regex -> standard
+        ('color:0:12.', CommunityKindChoices.KIND_EXTENDED),  # regex, ext keyword
+    ]
+
+    def test_cnad_test_member_kinds(self):
+        for value, expected in self.CNAD_TEST:
+            with self.subTest(value=value):
+                self.assertEqual(community_kind(value), expected)
+                self.assertEqual(Community(community=value).kind, expected)
+
+    def test_bare_large_community_requires_three_decimal_parts(self):
+        cases = (
+            ('65000:1:2', CommunityKindChoices.KIND_LARGE, 'large-community'),
+            ('65000:1', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('65000:1:2:3', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:*', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:.*', CommunityKindChoices.KIND_STANDARD, 'community'),
+            ('1111:*:*', CommunityKindChoices.KIND_STANDARD, 'community'),
+        )
+
+        for value, kind, keyword in cases:
+            with self.subTest(value=value):
+                self.assertEqual(community_kind(value), kind)
+                self.assertEqual(community_match_keyword(value), keyword)
+
+    def test_ext_prefix_aliases(self):
+        for value in (
+            'rt:1:2',
+            'route-target:1:2',
+            'origin:1:2',
+            'soo:1:2',
+            'bandwidth:1:2',
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    community_kind(value), CommunityKindChoices.KIND_EXTENDED
+                )
+
+    def test_match_keyword(self):
+        self.assertEqual(community_match_keyword('1111:1234'), 'community')
+        self.assertEqual(community_match_keyword('target:1111:1234'), 'extcommunity')
+        self.assertEqual(
+            community_match_keyword('large:1111:6370:1234'), 'large-community'
+        )
+        self.assertEqual(
+            Community(community='target:1:2').match_keyword, 'extcommunity'
+        )
 
 
 class CommunityListTestCase(TestCase):

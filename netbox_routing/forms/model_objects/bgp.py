@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.forms import fields
 from django.utils.translation import gettext as _
 
-from dcim.models import Device, Region, SiteGroup, Site, Location
+from dcim.models import Device, Interface, Region, SiteGroup, Site, Location
 from ipam.models import ASN, VRF, IPAddress
 from netbox.forms import PrimaryModelForm
 from tenancy.forms import TenancyForm
@@ -30,10 +30,13 @@ __all__ = (
     'BGPPolicyTemplateForm',
     'BGPSessionTemplateForm',
     'BFDProfileForm',
+    'BFDInterfaceForm',
 )
 
 
 class BGPSettingMixin:
+    setting_field_exclusions = ()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._append_settings_fields()
@@ -61,7 +64,12 @@ class BGPSettingMixin:
             'additional_paths_install',
             'test',
         ]
+        setting_fields = [
+            key for key in setting_fields if key not in self.setting_field_exclusions
+        ]
         for key, label in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             initial = None
             if hasattr(self, 'instance'):
                 setting = BGPSetting.objects.filter(
@@ -121,11 +129,15 @@ class BGPSettingMixin:
     def save(self, *args, **kwargs):
         settings = {}
         for key, name in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             if key in self.cleaned_data:
                 settings[key] = self.cleaned_data.pop(key)
         obj = super().save(*args, **kwargs)
 
         for key, name in BGPSettingChoices.CHOICES:
+            if key in self.setting_field_exclusions:
+                continue
             value = settings.get(key, None)
             setting = BGPSetting.objects.filter(
                 assigned_object_type=self.get_assigned_object_type(),
@@ -400,6 +412,8 @@ class BGPSessionTemplateForm(TenancyForm, PrimaryModelForm):
 
 
 class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
+    setting_field_exclusions = ('router_id',)
+
     region = DynamicModelChoiceField(
         queryset=Region.objects.all(),
         required=False,
@@ -493,7 +507,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             ),
             name=_('Assigned Object'),
         ),
-        FieldSet('asn', name=_('Router')),
+        FieldSet('asn', 'router_id', name=_('Router')),
         FieldSet(
             'peer_templates',
             'policy_templates',
@@ -516,6 +530,7 @@ class BGPRouterForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'cluster',
             'virtual_machine',
             'asn',
+            'router_id',
             'policy_templates',
             'session_templates',
             'peer_templates',
@@ -683,6 +698,25 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         selector=True,
         label=_('Local AS'),
     )
+    source = DynamicModelChoiceField(
+        queryset=IPAddress.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Source Address'),
+    )
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    update_source = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=False,
+        selector=True,
+        query_params={'device_id': '$device'},
+        label=_('Update Source'),
+    )
 
     fieldsets = (
         FieldSet(
@@ -691,7 +725,10 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
         ),
         FieldSet('scope', 'peer', 'status', name=_('Peer')),
         FieldSet('remote_as', 'local_as', name=_('ASNs')),
-        FieldSet('enabled', 'bfd', 'password', 'ttl', name=_('Peer Settings')),
+        FieldSet('source', 'device', 'update_source', name=_('Session Source')),
+        FieldSet(
+            'enabled', 'bfd', 'bfd_enabled', 'password', 'ttl', name=_('Peer Settings')
+        ),
         FieldSet('tenant_group', 'tenant', name=_('Tenancy')),
     )
 
@@ -701,6 +738,8 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'name',
             'scope',
             'peer',
+            'source',
+            'update_source',
             'remote_as',
             'local_as',
             'tenant',
@@ -708,6 +747,7 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'status',
             'ttl',
             'bfd',
+            'bfd_enabled',
             'password',
             'tenant_group',
             'tenant',
@@ -716,6 +756,26 @@ class BGPPeerForm(BGPSettingMixin, TenancyForm, PrimaryModelForm):
             'tags',
             'owner',
         ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and self.instance.update_source_id:
+            self.initial['device'] = self.instance.update_source.device_id
+
+    def clean(self):
+        super().clean()
+        device = self.cleaned_data.get('device')
+        update_source = self.cleaned_data.get('update_source')
+        if (
+            device is not None
+            and update_source is not None
+            and update_source.device_id != device.pk
+        ):
+            self.add_error(
+                'update_source',
+                _('The update source must belong to the selected device.'),
+            )
+        return self.cleaned_data
 
     def save(self, *args, **kwargs):
         return super().save(*args, **kwargs)
@@ -871,6 +931,47 @@ class BFDProfileForm(TenancyForm, PrimaryModelForm):
             'comments',
             'tenant_group',
             'tenant',
+            'tags',
+            'owner',
+        ]
+
+
+class BFDInterfaceForm(PrimaryModelForm):
+    device = DynamicModelChoiceField(
+        queryset=Device.objects.all(),
+        required=False,
+        selector=True,
+        label=_('Device'),
+    )
+    interface = DynamicModelChoiceField(
+        queryset=Interface.objects.all(),
+        required=True,
+        selector=True,
+        label=_('Interface'),
+        query_params={'device_id': '$device'},
+    )
+    bfd_profile = DynamicModelChoiceField(
+        queryset=BFDProfile.objects.all(),
+        required=False,
+        label=_('BFD Profile'),
+    )
+
+    fieldsets = (
+        FieldSet('description'),
+        FieldSet('device', 'interface', name=_('Interface')),
+        FieldSet('bfd_profile', 'micro_bfd', 'enabled', name=_('BFD')),
+    )
+
+    class Meta:
+        model = BFDInterface
+        fields = [
+            'device',
+            'interface',
+            'bfd_profile',
+            'micro_bfd',
+            'enabled',
+            'description',
+            'comments',
             'tags',
             'owner',
         ]
